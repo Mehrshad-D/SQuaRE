@@ -1,0 +1,12 @@
+{
+  "input_files": 3,
+  "experiment_rows": 1840,
+  "successful_rows": 1840,
+  "models": [
+    "deit_tiny_imagenetv2",
+    "resnet18_imagenetv2",
+    "swin_tiny_imagenetv2"
+  ],
+  "plots_written": [],
+  "output_dir": "/storage/users/pdarbani/Mehrshad/Transformer/v4.0/pretrained-isolation-framework/outputs/imagenetv2/layerwise_analysis"
+}
