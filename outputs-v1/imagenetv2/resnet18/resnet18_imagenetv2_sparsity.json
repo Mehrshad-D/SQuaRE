@@ -1,0 +1,6593 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-09-02T11:10:02.335877+00:00",
+  "model": {
+    "name": "resnet18.a1_in1k",
+    "short_name": "resnet18_imagenetv2",
+    "source": "timm_pretrained",
+    "architecture": "cnn",
+    "total_parameters": 11689512
+  },
+  "selection": {
+    "module_types": [
+      "conv2d"
+    ],
+    "include": [
+      "layer[1-4]\\.[0-9]+\\.(conv[12]|downsample\\.0)"
+    ],
+    "exclude": [
+      "conv1",
+      "fc"
+    ]
+  },
+  "data": {
+    "eval_dir": "data/imagenetv2/imagenetv2-matched-frequency-format-val",
+    "calib_dir": "data/imagenetv2/imagenetv2-threshold0.7-format-val",
+    "calibration_samples": 256,
+    "evaluation_dataset_samples": 10000,
+    "max_eval_samples": null,
+    "resolved_model_data_config": {
+      "input_size": [
+        3,
+        224,
+        224
+      ],
+      "interpolation": "bicubic",
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ],
+      "crop_pct": 0.95,
+      "crop_mode": "center"
+    },
+    "label_space": {
+      "dataset": "ImageNetV2",
+      "evaluation_variant": "matched-frequency",
+      "calibration_variant": "threshold-0.7",
+      "evaluation_mode": "full-1000-way-canonical-numeric-labels",
+      "num_classes": 1000,
+      "exact_calibration_eval_duplicates_removed": 3186,
+      "calibration_pool_after_duplicate_removal": 6814
+    }
+  },
+  "seed": 42,
+  "environment": {
+    "python": "3.13.5",
+    "torch": "2.6.0+cu124",
+    "timm": "1.0.29",
+    "cuda_available": true,
+    "cuda_version": "12.4",
+    "gpu": "NVIDIA GeForce RTX 3090"
+  },
+  "dense_baseline": {
+    "top1": 59.38,
+    "top5": 80.93,
+    "evaluated_samples": 10000,
+    "seconds": 15.173599161207676
+  },
+  "dense_reference_check": {
+    "benchmark": "ImageNetV2 matched-frequency",
+    "top1": 59.32,
+    "top5": 81.11,
+    "tolerance_pp": 0.15,
+    "enforce_for_full_sweeps": false,
+    "source": "timm results-imagenetv2-matched-frequency.csv",
+    "url": "https://github.com/huggingface/pytorch-image-models/blob/main/results/results-imagenetv2-matched-frequency.csv",
+    "comparable": true,
+    "measured_minus_reference_top1_pp": 0.060000000000002274,
+    "measured_minus_reference_top5_pp": -0.1799999999999926,
+    "within_tolerance": false
+  },
+  "experiments": [
+    {
+      "index": 0,
+      "id": "mag_u25",
+      "specification": {
+        "id": "mag_u25",
+        "policy": "magnitude",
+        "structure": "unstructured",
+        "sparsity": 0.25
+      },
+      "accuracy": {
+        "top1": 56.61,
+        "top5": 78.81,
+        "evaluated_samples": 10000,
+        "seconds": 14.70042746141553
+      },
+      "accuracy_drop_top1_pp": 2.770000000000003,
+      "accuracy_drop_top5_pp": 2.1200000000000045,
+      "relative_top1_drop_percent": 4.664870326709336,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 3.31230039591901e-05,
+            "sqnr_db": 33.15021148395447
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00014133495278656483,
+            "sqnr_db": 26.347467457711524
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00023223143944051117,
+            "sqnr_db": 24.926122413542252
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00025816733250394464,
+            "sqnr_db": 24.183122557710206
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 55296,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00023065890127327293,
+            "sqnr_db": 24.66688159951918
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 110592,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00022288155741989613,
+            "sqnr_db": 24.481279408717572
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 6144,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00018743748660199344,
+            "sqnr_db": 25.936111265447046
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 110592,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00023169006453827024,
+            "sqnr_db": 24.509138701549027
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 110592,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00027047510957345366,
+            "sqnr_db": 23.61081703196585
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 221184,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00024347954604309052,
+            "sqnr_db": 23.857368819468682
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 442368,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0002823724062182009,
+            "sqnr_db": 22.867576485846797
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 24576,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00024205616500694305,
+            "sqnr_db": 24.177906763720216
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 442368,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00027563644107431173,
+            "sqnr_db": 22.957729990079375
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 442368,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0002908187743742019,
+            "sqnr_db": 22.549039232662413
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 884736,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0002870036696549505,
+            "sqnr_db": 22.256080320859155
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1769472,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0002563617308624089,
+            "sqnr_db": 22.165021832037873
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 98304,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0002887830196414143,
+            "sqnr_db": 22.96991445829384
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1769472,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00022886194346938282,
+            "sqnr_db": 22.54511473423311
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1769472,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00023307651281356812,
+            "sqnr_db": 22.023943151807607
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 8368128,
+        "selected_sparsity": 0.25,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 15.777495097368956
+    },
+    {
+      "index": 1,
+      "id": "mag_u50",
+      "specification": {
+        "id": "mag_u50",
+        "policy": "magnitude",
+        "structure": "unstructured",
+        "sparsity": 0.5
+      },
+      "accuracy": {
+        "top1": 36.72,
+        "top5": 59.3,
+        "evaluated_samples": 10000,
+        "seconds": 14.652110047638416
+      },
+      "accuracy_drop_top1_pp": 22.660000000000004,
+      "accuracy_drop_top5_pp": 21.63000000000001,
+      "relative_top1_drop_percent": 38.16099696867633,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0010022222995758057,
+            "sqnr_db": 18.341868032838885
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0017507270677015185,
+            "sqnr_db": 15.417778775818594
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002165433717891574,
+            "sqnr_db": 15.22988360547344
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0023481580428779125,
+            "sqnr_db": 14.594862194653654
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 36864,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002064489061012864,
+            "sqnr_db": 15.148457928729496
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0020121466368436813,
+            "sqnr_db": 14.925424475578543
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 4096,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0018026692559942603,
+            "sqnr_db": 16.10551526576428
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0021221099887043238,
+            "sqnr_db": 14.890533911083622
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002439654665067792,
+            "sqnr_db": 14.058806526188903
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 147456,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0021702905651181936,
+            "sqnr_db": 14.356814828950304
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002482027281075716,
+            "sqnr_db": 13.427733525279656
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 16384,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002203125972300768,
+            "sqnr_db": 14.58667494338985
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002430959604680538,
+            "sqnr_db": 13.503318906009486
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002585317473858595,
+            "sqnr_db": 13.060124815453314
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 589824,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002524151001125574,
+            "sqnr_db": 12.81380149835556
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0022668594028800726,
+            "sqnr_db": 12.699307935534128
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 65536,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0026212655939161777,
+            "sqnr_db": 13.390520719868174
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002044033957645297,
+            "sqnr_db": 13.03596948541649
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002036062069237232,
+            "sqnr_db": 12.611018136185947
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 5578752,
+        "selected_sparsity": 0.5,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 15.599369833245873
+    },
+    {
+      "index": 2,
+      "id": "mag_u75",
+      "specification": {
+        "id": "mag_u75",
+        "policy": "magnitude",
+        "structure": "unstructured",
+        "sparsity": 0.75
+      },
+      "accuracy": {
+        "top1": 0.22,
+        "top5": 0.9,
+        "evaluated_samples": 10000,
+        "seconds": 14.660880204290152
+      },
+      "accuracy_drop_top1_pp": 59.160000000000004,
+      "accuracy_drop_top5_pp": 80.03,
+      "relative_top1_drop_percent": 99.62950488379926,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.006040021777153015,
+            "sqnr_db": 10.541123604440031
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.008387845940887928,
+            "sqnr_db": 8.613458787303188
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00978225376456976,
+            "sqnr_db": 8.68094330623827
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.010286509990692139,
+            "sqnr_db": 8.179454910052094
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 18432,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00922812707722187,
+            "sqnr_db": 8.645448125155792
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.008738284930586815,
+            "sqnr_db": 8.547758729524583
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 2048,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.008605165407061577,
+            "sqnr_db": 9.317083559247173
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009312693029642105,
+            "sqnr_db": 8.467459929618599
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.010431583039462566,
+            "sqnr_db": 7.748587890400084
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 73728,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009225734509527683,
+            "sqnr_db": 8.071984126169593
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01021258533000946,
+            "sqnr_db": 7.284442049923272
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 8192,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00984453409910202,
+            "sqnr_db": 8.08511657069752
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01009086612612009,
+            "sqnr_db": 7.32181188323794
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.010699707083404064,
+            "sqnr_db": 6.891544745423131
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 294912,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.010341167449951172,
+            "sqnr_db": 6.689259112610163
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00928098801523447,
+            "sqnr_db": 6.5776116646898055
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 32768,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.011202347464859486,
+            "sqnr_db": 7.082540599694845
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.008510922081768513,
+            "sqnr_db": 6.841084404916954
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.008218767121434212,
+            "sqnr_db": 6.550861520296179
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 2789376,
+        "selected_sparsity": 0.75,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 15.852109475061297
+    },
+    {
+      "index": 3,
+      "id": "wanda_u25",
+      "specification": {
+        "id": "wanda_u25",
+        "policy": "wanda",
+        "structure": "unstructured",
+        "sparsity": 0.25
+      },
+      "accuracy": {
+        "top1": 58.6,
+        "top5": 80.36,
+        "evaluated_samples": 10000,
+        "seconds": 14.63519161194563
+      },
+      "accuracy_drop_top1_pp": 0.7800000000000011,
+      "accuracy_drop_top5_pp": 0.5700000000000074,
+      "relative_top1_drop_percent": 1.313573593802629,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00042693354771472514,
+            "sqnr_db": 22.047905826369863
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0009978540474548936,
+            "sqnr_db": 17.859293007027773
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00118612393271178,
+            "sqnr_db": 17.844031865667578
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00376833975315094,
+            "sqnr_db": 12.540634913984567
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 55296,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0006714456831105053,
+            "sqnr_db": 20.026474929336835
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 110592,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002509021433070302,
+            "sqnr_db": 13.966977034145565
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 6144,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0004881182103417814,
+            "sqnr_db": 21.7794256831905
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 110592,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.002201169030740857,
+            "sqnr_db": 14.731678867942035
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 110592,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0025831758975982666,
+            "sqnr_db": 13.810550287711457
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 221184,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0010279732523486018,
+            "sqnr_db": 17.602175507519444
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 442368,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0012775916839018464,
+            "sqnr_db": 16.311878270119205
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 24576,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0010914136655628681,
+            "sqnr_db": 17.637174374053732
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 442368,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0008427288266830146,
+            "sqnr_db": 18.104217830140836
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 442368,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0021899209823459387,
+            "sqnr_db": 13.78097918361246
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 884736,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0005441011744551361,
+            "sqnr_db": 19.478158184423098
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1769472,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0010555849876254797,
+            "sqnr_db": 16.018621732065533
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 98304,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00048779009375721216,
+            "sqnr_db": 20.693301228514898
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1769472,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0018428228795528412,
+            "sqnr_db": 13.486014594278677
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1769472,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0009396633831784129,
+            "sqnr_db": 15.969205233388973
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 8368128,
+        "selected_sparsity": 0.25,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 16.774450758472085
+    },
+    {
+      "index": 4,
+      "id": "wanda_u50",
+      "specification": {
+        "id": "wanda_u50",
+        "policy": "wanda",
+        "structure": "unstructured",
+        "sparsity": 0.5
+      },
+      "accuracy": {
+        "top1": 45.74,
+        "top5": 68.92,
+        "evaluated_samples": 10000,
+        "seconds": 14.680411426350474
+      },
+      "accuracy_drop_top1_pp": 13.64,
+      "accuracy_drop_top5_pp": 12.010000000000005,
+      "relative_top1_drop_percent": 22.97069720444594,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.004661704413592815,
+            "sqnr_db": 11.666061323187174
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00459032179787755,
+            "sqnr_db": 11.23153191741983
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0072339316830039024,
+            "sqnr_db": 9.991588524439363
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0073646241798996925,
+            "sqnr_db": 9.630629537329948
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 36864,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0042883725836873055,
+            "sqnr_db": 11.973658680902279
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00542032765224576,
+            "sqnr_db": 10.621765347555225
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 4096,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0034519860055297613,
+            "sqnr_db": 13.28398552203053
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.005164044443517923,
+            "sqnr_db": 11.028313093914875
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.006950737908482552,
+            "sqnr_db": 9.511780957275569
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 147456,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0037548094987869263,
+            "sqnr_db": 11.976114574472899
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.004119711462408304,
+            "sqnr_db": 11.227131033918642
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 16384,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0040718019008636475,
+            "sqnr_db": 11.919201838978008
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.003686036914587021,
+            "sqnr_db": 11.695499525837704
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.005328709725290537,
+            "sqnr_db": 9.919042998433904
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 589824,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.003290815046057105,
+            "sqnr_db": 11.66192007491494
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.003614992368966341,
+            "sqnr_db": 10.67247993464483
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 65536,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0036612441763281822,
+            "sqnr_db": 11.939344051970462
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00392259331420064,
+            "sqnr_db": 10.205117712495387
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.003814793424680829,
+            "sqnr_db": 9.884218015308878
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 5578752,
+        "selected_sparsity": 0.5,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 16.686078222468495
+    },
+    {
+      "index": 5,
+      "id": "wanda_u75",
+      "specification": {
+        "id": "wanda_u75",
+        "policy": "wanda",
+        "structure": "unstructured",
+        "sparsity": 0.75
+      },
+      "accuracy": {
+        "top1": 0.34,
+        "top5": 2.0,
+        "evaluated_samples": 10000,
+        "seconds": 14.952082155272365
+      },
+      "accuracy_drop_top1_pp": 59.04,
+      "accuracy_drop_top5_pp": 78.93,
+      "relative_top1_drop_percent": 99.42741663859886,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.013122757896780968,
+            "sqnr_db": 7.1712574835094225
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.015076571144163609,
+            "sqnr_db": 6.066937425121313
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01952522248029709,
+            "sqnr_db": 5.679372642777776
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.016334811225533485,
+            "sqnr_db": 6.170994233495861
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 18432,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.013705028221011162,
+            "sqnr_db": 6.9277844475556085
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.013483583927154541,
+            "sqnr_db": 6.663967319510454
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 2048,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.012849093414843082,
+            "sqnr_db": 7.575950920910367
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.014166171662509441,
+            "sqnr_db": 6.645687805096112
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01574958674609661,
+            "sqnr_db": 5.95939845792696
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 73728,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.012282401323318481,
+            "sqnr_db": 6.829160816019958
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.012355000711977482,
+            "sqnr_db": 6.4573712847742035
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 8192,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01355036161839962,
+            "sqnr_db": 6.697559392980704
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.012326737865805626,
+            "sqnr_db": 6.452614722292783
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.013971990905702114,
+            "sqnr_db": 5.732680688014684
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 294912,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01217151153832674,
+            "sqnr_db": 5.981509666606754
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.011244525201618671,
+            "sqnr_db": 5.744142561864269
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 32768,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.013355640694499016,
+            "sqnr_db": 6.318983723296211
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.010726512409746647,
+            "sqnr_db": 5.8362651547965205
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01123084593564272,
+            "sqnr_db": 5.194803572786132
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 2789376,
+        "selected_sparsity": 0.75,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 17.001897159963846
+    },
+    {
+      "index": 6,
+      "id": "random_u25",
+      "specification": {
+        "id": "random_u25",
+        "policy": "random",
+        "structure": "unstructured",
+        "sparsity": 0.25
+      },
+      "accuracy": {
+        "top1": 0.12,
+        "top5": 0.68,
+        "evaluated_samples": 10000,
+        "seconds": 14.895415093749762
+      },
+      "accuracy_drop_top1_pp": 59.260000000000005,
+      "accuracy_drop_top5_pp": 80.25,
+      "relative_top1_drop_percent": 99.7979117547996,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.018147610127925873,
+            "sqnr_db": 5.763314243271049
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.014353831298649311,
+            "sqnr_db": 6.280284862937461
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01892899163067341,
+            "sqnr_db": 5.814057762175939
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 27648,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01732178032398224,
+            "sqnr_db": 5.916210166868208
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 55296,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.016989324241876602,
+            "sqnr_db": 5.994822739676505
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 110592,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.016223395243287086,
+            "sqnr_db": 5.86060325828865
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 6144,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.019885603338479996,
+            "sqnr_db": 5.679288063859623
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 110592,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01654600165784359,
+            "sqnr_db": 5.971282171816222
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 110592,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01568552292883396,
+            "sqnr_db": 5.977100066817991
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 221184,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.014636501669883728,
+            "sqnr_db": 6.067620786801521
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 442368,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.013698549941182137,
+            "sqnr_db": 6.009053058578111
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 24576,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.015617314726114273,
+            "sqnr_db": 6.0810046222155645
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 442368,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.013662222772836685,
+            "sqnr_db": 6.005882702661694
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 442368,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.012997487559914589,
+            "sqnr_db": 6.046669526508816
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 884736,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.012059181928634644,
+            "sqnr_db": 6.021776346706557
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1769472,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.010531703941524029,
+            "sqnr_db": 6.0285673624478076
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 98304,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.014646604657173157,
+            "sqnr_db": 5.918261398956329
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1769472,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.010263913311064243,
+            "sqnr_db": 6.0277207968729
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1769472,
+          "sparsity": 0.25,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009315858595073223,
+            "sqnr_db": 6.006699391482693
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 8368128,
+        "selected_sparsity": 0.25,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 16.007752576842904
+    },
+    {
+      "index": 7,
+      "id": "random_u50",
+      "specification": {
+        "id": "random_u50",
+        "policy": "random",
+        "structure": "unstructured",
+        "sparsity": 0.5
+      },
+      "accuracy": {
+        "top1": 0.1,
+        "top5": 0.48,
+        "evaluated_samples": 10000,
+        "seconds": 14.459620025008917
+      },
+      "accuracy_drop_top1_pp": 59.28,
+      "accuracy_drop_top5_pp": 80.45,
+      "relative_top1_drop_percent": 99.83159312899966,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03523261100053787,
+            "sqnr_db": 2.8820603605631714
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02912778966128826,
+            "sqnr_db": 3.206887941404089
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03581215441226959,
+            "sqnr_db": 3.04502807042513
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03369677811861038,
+            "sqnr_db": 3.0262516497929504
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 36864,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.033924002200365067,
+            "sqnr_db": 2.9915129621288026
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03145556524395943,
+            "sqnr_db": 2.9850458097342774
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 4096,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03595825284719467,
+            "sqnr_db": 3.106689966910801
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03279455751180649,
+            "sqnr_db": 3.000195052292662
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03078637830913067,
+            "sqnr_db": 3.0485040683254687
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 147456,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.029432620853185654,
+            "sqnr_db": 3.0337042935627183
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02738838456571102,
+            "sqnr_db": 3.0001348598986803
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 16384,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03173275664448738,
+            "sqnr_db": 3.0019902350330776
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.027290115132927895,
+            "sqnr_db": 3.0010426492401083
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.026162534952163696,
+            "sqnr_db": 3.0084654153885735
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 589824,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02405836246907711,
+            "sqnr_db": 3.022294180007531
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.021087519824504852,
+            "sqnr_db": 3.013298744459651
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 65536,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.028575755655765533,
+            "sqnr_db": 3.0156537540756894
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.020556319504976273,
+            "sqnr_db": 3.0113969575704447
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.018619582056999207,
+            "sqnr_db": 2.9992289853047156
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 5578752,
+        "selected_sparsity": 0.5,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 15.447415634989738
+    },
+    {
+      "index": 8,
+      "id": "random_u75",
+      "specification": {
+        "id": "random_u75",
+        "policy": "random",
+        "structure": "unstructured",
+        "sparsity": 0.75
+      },
+      "accuracy": {
+        "top1": 0.1,
+        "top5": 0.47,
+        "evaluated_samples": 10000,
+        "seconds": 14.58554551936686
+      },
+      "accuracy_drop_top1_pp": 59.28,
+      "accuracy_drop_top5_pp": 80.46000000000001,
+      "relative_top1_drop_percent": 99.83159312899966,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.051161158829927444,
+            "sqnr_db": 1.2621049196626408
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.04583597555756569,
+            "sqnr_db": 1.2378984477075525
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0548475906252861,
+            "sqnr_db": 1.1937570102094945
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.04985393211245537,
+            "sqnr_db": 1.3251412527190307
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 18432,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.05110416188836098,
+            "sqnr_db": 1.2120210869535988
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.04715066775679588,
+            "sqnr_db": 1.227142269845561
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 2048,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.054946523159742355,
+            "sqnr_db": 1.2652736174194665
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.04907820373773575,
+            "sqnr_db": 1.2493262151982345
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.04606247320771217,
+            "sqnr_db": 1.2986175600586622
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 73728,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.044348590075969696,
+            "sqnr_db": 1.2531954794643894
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.04094834625720978,
+            "sqnr_db": 1.2534353623933228
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 8192,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.04698155075311661,
+            "sqnr_db": 1.2977947693490859
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.04091691970825195,
+            "sqnr_db": 1.2420670094022117
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.039292626082897186,
+            "sqnr_db": 1.2421530767313964
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 294912,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03610663115978241,
+            "sqnr_db": 1.2590851224308723
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0316142700612545,
+            "sqnr_db": 1.2547221944342355
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 32768,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.042910635471343994,
+            "sqnr_db": 1.2499815296131485
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.030861593782901764,
+            "sqnr_db": 1.246667044790445
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.027879182249307632,
+            "sqnr_db": 1.2461279601775725
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 2789376,
+        "selected_sparsity": 0.75,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 15.589413003996015
+    },
+    {
+      "index": 9,
+      "id": "mag_2to4",
+      "specification": {
+        "id": "mag_2to4",
+        "policy": "magnitude",
+        "structure": "nm",
+        "n": 2,
+        "m": 4
+      },
+      "accuracy": {
+        "top1": 7.27,
+        "top5": 16.81,
+        "evaluated_samples": 10000,
+        "seconds": 14.646675031632185
+      },
+      "accuracy_drop_top1_pp": 52.11,
+      "accuracy_drop_top5_pp": 64.12,
+      "relative_top1_drop_percent": 87.75682047827551,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.006611361168324947,
+            "sqnr_db": 10.14859982268632
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00777939148247242,
+            "sqnr_db": 8.940506968848572
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.007921479642391205,
+            "sqnr_db": 9.597269449857578
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009849959053099155,
+            "sqnr_db": 8.367791181215914
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 36864,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01024609338492155,
+            "sqnr_db": 8.191000691148986
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.007805932778865099,
+            "sqnr_db": 9.037772676479463
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 4096,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.004691392183303833,
+            "sqnr_db": 11.951658387029546
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.007496408186852932,
+            "sqnr_db": 9.409680543991715
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009396185167133808,
+            "sqnr_db": 8.202574419311365
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 147456,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009624097496271133,
+            "sqnr_db": 7.888393513605693
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.007734871003776789,
+            "sqnr_db": 8.491268279756692
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 16384,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.005117393098771572,
+            "sqnr_db": 10.92658045564689
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0070078689604997635,
+            "sqnr_db": 8.905236604182715
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009296808391809464,
+            "sqnr_db": 7.501924828904802
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 589824,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0090094655752182,
+            "sqnr_db": 7.287964515838253
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.006331058219075203,
+            "sqnr_db": 8.238790711059753
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 65536,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0054991887882351875,
+            "sqnr_db": 10.172644697339766
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.006798191461712122,
+            "sqnr_db": 7.816916632956499
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0062475549057126045,
+            "sqnr_db": 7.7418274537978
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 5578752,
+        "selected_sparsity": 0.5,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 15.691817861050367
+    },
+    {
+      "index": 10,
+      "id": "wanda_2to4",
+      "specification": {
+        "id": "wanda_2to4",
+        "policy": "wanda",
+        "structure": "nm",
+        "n": 2,
+        "m": 4
+      },
+      "accuracy": {
+        "top1": 6.93,
+        "top5": 15.59,
+        "evaluated_samples": 10000,
+        "seconds": 14.739383649080992
+      },
+      "accuracy_drop_top1_pp": 52.45,
+      "accuracy_drop_top5_pp": 65.34,
+      "relative_top1_drop_percent": 88.32940383967666,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.007140491623431444,
+            "sqnr_db": 9.814227508901297
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009068640880286694,
+            "sqnr_db": 8.274541198306245
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009023952297866344,
+            "sqnr_db": 9.031364645356454
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.010978788137435913,
+            "sqnr_db": 7.896591388452668
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 36864,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01095773559063673,
+            "sqnr_db": 7.899375621882159
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.008438725024461746,
+            "sqnr_db": 8.699252390171411
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 4096,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0071668466553092,
+            "sqnr_db": 10.11139466372864
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.007999438792467117,
+            "sqnr_db": 9.127617609311244
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.010227754712104797,
+            "sqnr_db": 7.8342870462203145
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 147456,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.010009839199483395,
+            "sqnr_db": 7.71772264383546
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.008045036345720291,
+            "sqnr_db": 8.320518927551937
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 16384,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.007141387555748224,
+            "sqnr_db": 9.479242222481545
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.007316495757550001,
+            "sqnr_db": 8.71806507712845
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009956372901797295,
+            "sqnr_db": 7.204252089633155
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 589824,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.009397090412676334,
+            "sqnr_db": 7.105020764102807
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.00665992172434926,
+            "sqnr_db": 8.018862534926853
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 65536,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.006440932862460613,
+            "sqnr_db": 9.486143268080646
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0073645529337227345,
+            "sqnr_db": 7.469386669537329
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.006722296122461557,
+            "sqnr_db": 7.423751873575883
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 5578752,
+        "selected_sparsity": 0.5,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 17.72389929369092
+    },
+    {
+      "index": 11,
+      "id": "random_2to4",
+      "specification": {
+        "id": "random_2to4",
+        "policy": "random",
+        "structure": "nm",
+        "n": 2,
+        "m": 4
+      },
+      "accuracy": {
+        "top1": 0.1,
+        "top5": 0.49,
+        "evaluated_samples": 10000,
+        "seconds": 14.667796725407243
+      },
+      "accuracy_drop_top1_pp": 59.28,
+      "accuracy_drop_top5_pp": 80.44000000000001,
+      "relative_top1_drop_percent": 99.83159312899966,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03486131131649017,
+            "sqnr_db": 2.9280714573512467
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03000565804541111,
+            "sqnr_db": 3.07793168340381
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03586754575371742,
+            "sqnr_db": 3.0383159444902352
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 18432,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03396141156554222,
+            "sqnr_db": 2.992278103544991
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 36864,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.033974550664424896,
+            "sqnr_db": 2.985046573041163
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03160741552710533,
+            "sqnr_db": 2.964130887319893
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 4096,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03688345104455948,
+            "sqnr_db": 2.9963602903550584
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03279348835349083,
+            "sqnr_db": 3.000336641983492
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 73728,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.030941464006900787,
+            "sqnr_db": 3.02668149946441
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 147456,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.029602566733956337,
+            "sqnr_db": 3.008699964741965
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02743997611105442,
+            "sqnr_db": 2.9919617429964855
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 16384,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03131178021430969,
+            "sqnr_db": 3.0599906478028793
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02732120454311371,
+            "sqnr_db": 2.9960979012178974
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 294912,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02611364983022213,
+            "sqnr_db": 3.0165878692299444
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 589824,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.024066636338829994,
+            "sqnr_db": 3.0208008621469284
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.021097322925925255,
+            "sqnr_db": 3.01128027874947
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 65536,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02881128154695034,
+            "sqnr_db": 2.9800052263958055
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02054228074848652,
+            "sqnr_db": 3.014363946555868
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 1179648,
+          "sparsity": 0.5,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.018582424148917198,
+            "sqnr_db": 3.0079045818390417
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 5578752,
+        "selected_sparsity": 0.5,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 15.87969870865345
+    },
+    {
+      "index": 12,
+      "id": "mag_1to4",
+      "specification": {
+        "id": "mag_1to4",
+        "policy": "magnitude",
+        "structure": "nm",
+        "n": 1,
+        "m": 4
+      },
+      "accuracy": {
+        "top1": 0.19,
+        "top5": 0.97,
+        "evaluated_samples": 10000,
+        "seconds": 14.525154860690236
+      },
+      "accuracy_drop_top1_pp": 59.190000000000005,
+      "accuracy_drop_top5_pp": 79.96000000000001,
+      "relative_top1_drop_percent": 99.68002694509937,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.019354602321982384,
+            "sqnr_db": 5.483666125859669
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02232999913394451,
+            "sqnr_db": 4.36107617706062
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.023492250591516495,
+            "sqnr_db": 4.8760863061816915
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.026530573144555092,
+            "sqnr_db": 4.064669110110168
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 18432,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.028380168601870537,
+            "sqnr_db": 3.7664340771851768
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02217716909945011,
+            "sqnr_db": 4.502959667072465
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 2048,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.017578614875674248,
+            "sqnr_db": 6.214829271818472
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.022041507065296173,
+            "sqnr_db": 4.7257999505564685
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.025438247248530388,
+            "sqnr_db": 3.8772182444382963
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 73728,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02576710656285286,
+            "sqnr_db": 3.6113371176586924
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02104203589260578,
+            "sqnr_db": 4.144921461757122
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 8192,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01638190448284149,
+            "sqnr_db": 5.873424352920775
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.01970912329852581,
+            "sqnr_db": 4.414423264050557
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.023440850898623466,
+            "sqnr_db": 3.4855299064421805
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 294912,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02253028377890587,
+            "sqnr_db": 3.3072881989435583
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.016723547130823135,
+            "sqnr_db": 4.0202697986683855
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 32768,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0173644982278347,
+            "sqnr_db": 5.17900860822907
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.017451604828238487,
+            "sqnr_db": 3.7224968470061945
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.016039187088608742,
+            "sqnr_db": 3.6471047369532266
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 2789376,
+        "selected_sparsity": 0.75,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 15.439284961670637
+    },
+    {
+      "index": 13,
+      "id": "wanda_1to4",
+      "specification": {
+        "id": "wanda_1to4",
+        "policy": "wanda",
+        "structure": "nm",
+        "n": 1,
+        "m": 4
+      },
+      "accuracy": {
+        "top1": 0.1,
+        "top5": 0.71,
+        "evaluated_samples": 10000,
+        "seconds": 14.65791567414999
+      },
+      "accuracy_drop_top1_pp": 59.28,
+      "accuracy_drop_top5_pp": 80.22000000000001,
+      "relative_top1_drop_percent": 99.83159312899966,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.020025646314024925,
+            "sqnr_db": 5.335643233667038
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.023957526311278343,
+            "sqnr_db": 4.055543501505491
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.025225257501006126,
+            "sqnr_db": 4.566976471903016
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.027567574754357338,
+            "sqnr_db": 3.898149823191149
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 18432,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02937125600874424,
+            "sqnr_db": 3.617358601795939
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.022976739332079887,
+            "sqnr_db": 4.349136774022899
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 2048,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.022279150784015656,
+            "sqnr_db": 5.185689458216547
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.022729208692908287,
+            "sqnr_db": 4.592369644648139
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.026483038440346718,
+            "sqnr_db": 3.7024119769099695
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 73728,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02625270187854767,
+            "sqnr_db": 3.530253584947225
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0214712992310524,
+            "sqnr_db": 4.057215787966629
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 8192,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.019764993339776993,
+            "sqnr_db": 5.058101523422415
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.020108506083488464,
+            "sqnr_db": 4.327298259640151
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.024290867149829865,
+            "sqnr_db": 3.330833443023875
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 294912,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02298770099878311,
+            "sqnr_db": 3.219999421575614
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.017176132649183273,
+            "sqnr_db": 3.904299928816032
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 32768,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.019196653738617897,
+            "sqnr_db": 4.743375677536479
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.018115755170583725,
+            "sqnr_db": 3.5602861234079617
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0166975986212492,
+            "sqnr_db": 3.4723880970425243
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 2789376,
+        "selected_sparsity": 0.75,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 16.713328525424004
+    },
+    {
+      "index": 14,
+      "id": "random_1to4",
+      "specification": {
+        "id": "random_1to4",
+        "policy": "random",
+        "structure": "nm",
+        "n": 1,
+        "m": 4
+      },
+      "accuracy": {
+        "top1": 0.1,
+        "top5": 0.51,
+        "evaluated_samples": 10000,
+        "seconds": 14.613081546500325
+      },
+      "accuracy_drop_top1_pp": 59.28,
+      "accuracy_drop_top5_pp": 80.42,
+      "relative_top1_drop_percent": 99.83159312899966,
+      "layers": {
+        "layer1.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.05245201662182808,
+            "sqnr_db": 1.1538867474281793
+          }
+        },
+        "layer1.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.045597247779369354,
+            "sqnr_db": 1.26057694214505
+          }
+        },
+        "layer1.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.05375722795724869,
+            "sqnr_db": 1.2809638961329062
+          }
+        },
+        "layer1.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            64,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 36864,
+          "nonzero_weights": 9216,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.05072098225355148,
+            "sqnr_db": 1.250258878083428
+          }
+        },
+        "layer2.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            3,
+            3
+          ],
+          "num_weights": 73728,
+          "nonzero_weights": 18432,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.05073924735188484,
+            "sqnr_db": 1.2431435815687184
+          }
+        },
+        "layer2.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.047033265233039856,
+            "sqnr_db": 1.2379694445065856
+          }
+        },
+        "layer2.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            64,
+            1,
+            1
+          ],
+          "num_weights": 8192,
+          "nonzero_weights": 2048,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.05390458554029465,
+            "sqnr_db": 1.3484186740454718
+          }
+        },
+        "layer2.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.049101073294878006,
+            "sqnr_db": 1.2473029526625385
+          }
+        },
+        "layer2.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            128,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 147456,
+          "nonzero_weights": 36864,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.046318843960762024,
+            "sqnr_db": 1.2745129699510782
+          }
+        },
+        "layer3.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            3,
+            3
+          ],
+          "num_weights": 294912,
+          "nonzero_weights": 73728,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.044425103813409805,
+            "sqnr_db": 1.245709139596682
+          }
+        },
+        "layer3.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0410192497074604,
+            "sqnr_db": 1.245921909178135
+          }
+        },
+        "layer3.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            128,
+            1,
+            1
+          ],
+          "num_weights": 32768,
+          "nonzero_weights": 8192,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.0474020391702652,
+            "sqnr_db": 1.2590979985193251
+          }
+        },
+        "layer3.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.04093398526310921,
+            "sqnr_db": 1.2402560394648334
+          }
+        },
+        "layer3.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            256,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 589824,
+          "nonzero_weights": 147456,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03921845555305481,
+            "sqnr_db": 1.2503587620288208
+          }
+        },
+        "layer4.0.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            3,
+            3
+          ],
+          "num_weights": 1179648,
+          "nonzero_weights": 294912,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.036151859909296036,
+            "sqnr_db": 1.2536483637574536
+          }
+        },
+        "layer4.0.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.03164368122816086,
+            "sqnr_db": 1.250683774550634
+          }
+        },
+        "layer4.0.downsample.0": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            256,
+            1,
+            1
+          ],
+          "num_weights": 131072,
+          "nonzero_weights": 32768,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.043065980076789856,
+            "sqnr_db": 1.2342876393792444
+          }
+        },
+        "layer4.1.conv1": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.030817098915576935,
+            "sqnr_db": 1.2529330267232335
+          }
+        },
+        "layer4.1.conv2": {
+          "type": "conv2d",
+          "shape": [
+            512,
+            512,
+            3,
+            3
+          ],
+          "num_weights": 2359296,
+          "nonzero_weights": 589824,
+          "sparsity": 0.75,
+          "weight_bits": 32,
+          "activation_bits": 32,
+          "weight_format": "FP32",
+          "activation_format": "FP32",
+          "activation_amax": null,
+          "effective_weight_error": {
+            "mse": 0.02783578261733055,
+            "sqnr_db": 1.2528939070076968
+          }
+        }
+      },
+      "aggregate": {
+        "selected_layers": 19,
+        "selected_weights": 11157504,
+        "selected_nonzero_weights": 2789376,
+        "selected_sparsity": 0.75,
+        "selected_fraction_of_all_model_parameters": 0.954488433734445
+      },
+      "isolation_checks": {
+        "weight_quantization_bypassed": true,
+        "activation_quantization_bypassed": true
+      },
+      "status": "succeeded",
+      "total_seconds": 15.674351902678609
+    }
+  ],
+  "suite": "sparsity",
+  "output_file": "/storage/users/pdarbani/Mehrshad/Transformer/v3.0/pretrained-isolation-framework/outputs/imagenetv2/resnet18/resnet18_imagenetv2_sparsity.json",
+  "completed_at_utc": "2026-09-02T11:14:04.436662+00:00"
+}
