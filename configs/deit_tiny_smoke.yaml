@@ -1,0 +1,26 @@
+seed: 42
+device: cuda
+output_dir: outputs/smoke
+continue_on_error: false
+model: {name: deit_tiny_patch16_224.fb_in1k, short_name: deit_tiny_smoke, source: timm_pretrained, dataset: ImageNet-1k}
+data:
+  eval_dir: /path/to/imagenet/val
+  calib_dir: /path/to/imagenet/train
+  calibration_samples: 32
+  batch_size: 16
+  num_workers: 4
+  seed: 42
+  max_eval_samples: 128
+selection:
+  module_types: [linear]
+  include: ['blocks\.[0-9]+\.(attn\.(qkv|proj)|mlp\.fc[12])']
+  exclude: ['head']
+quantization_sweep:
+  experiments:
+    - {id: W4_AFP32, weight_bits: 4, activation_bits: 32}
+    - {id: WFP32_A4, weight_bits: 32, activation_bits: 4}
+    - {id: W4_A4, weight_bits: 4, activation_bits: 4}
+sparsity_sweep:
+  experiments:
+    - {id: mag_u50, policy: magnitude, structure: unstructured, sparsity: 0.50}
+    - {id: wanda_2to4, policy: wanda, structure: nm, n: 2, m: 4}

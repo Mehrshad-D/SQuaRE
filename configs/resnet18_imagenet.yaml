@@ -1,0 +1,67 @@
+seed: 42
+device: cuda
+output_dir: outputs/resnet18
+continue_on_error: false
+
+model:
+  # Official timm ImageNet-1k pretrained ResNet-18: about 11.7M parameters.
+  name: resnet18.a1_in1k
+  short_name: resnet18
+  source: timm_pretrained
+  dataset: ImageNet-1k
+
+data:
+  eval_dir: /path/to/imagenet/val
+  calib_dir: /path/to/imagenet/train
+  calibration_samples: 256
+  batch_size: 16
+  num_workers: 8
+  seed: 42
+  max_eval_samples: null
+
+selection:
+  module_types: [conv2d]
+  # Compress the residual stages; leave the sensitive stem and classifier dense.
+  include:
+    - 'layer[1-4]\.[0-9]+\.(conv[12]|downsample\.0)'
+  exclude:
+    - 'conv1'
+    - 'fc'
+
+quantization_sweep:
+  experiments:
+    - {id: W8_AFP32, weight_bits: 8, activation_bits: 32}
+    - {id: W6_AFP32, weight_bits: 6, activation_bits: 32}
+    - {id: W4_AFP32, weight_bits: 4, activation_bits: 32}
+    - {id: W3_AFP32, weight_bits: 3, activation_bits: 32}
+    - {id: W2_AFP32, weight_bits: 2, activation_bits: 32}
+    - {id: WFP32_A8, weight_bits: 32, activation_bits: 8}
+    - {id: WFP32_A6, weight_bits: 32, activation_bits: 6}
+    - {id: WFP32_A4, weight_bits: 32, activation_bits: 4}
+    - {id: WFP32_A3, weight_bits: 32, activation_bits: 3}
+    - {id: WFP32_A2, weight_bits: 32, activation_bits: 2}
+    - {id: W8_A8, weight_bits: 8, activation_bits: 8}
+    - {id: W6_A6, weight_bits: 6, activation_bits: 6}
+    - {id: W4_A8, weight_bits: 4, activation_bits: 8}
+    - {id: W4_A6, weight_bits: 4, activation_bits: 6}
+    - {id: W4_A4, weight_bits: 4, activation_bits: 4}
+    - {id: W3_A4, weight_bits: 3, activation_bits: 4}
+    - {id: W2_A4, weight_bits: 2, activation_bits: 4}
+
+sparsity_sweep:
+  experiments:
+    - {id: mag_u25, policy: magnitude, structure: unstructured, sparsity: 0.25}
+    - {id: mag_u50, policy: magnitude, structure: unstructured, sparsity: 0.50}
+    - {id: mag_u75, policy: magnitude, structure: unstructured, sparsity: 0.75}
+    - {id: wanda_u25, policy: wanda, structure: unstructured, sparsity: 0.25}
+    - {id: wanda_u50, policy: wanda, structure: unstructured, sparsity: 0.50}
+    - {id: wanda_u75, policy: wanda, structure: unstructured, sparsity: 0.75}
+    - {id: random_u25, policy: random, structure: unstructured, sparsity: 0.25}
+    - {id: random_u50, policy: random, structure: unstructured, sparsity: 0.50}
+    - {id: random_u75, policy: random, structure: unstructured, sparsity: 0.75}
+    - {id: mag_2to4, policy: magnitude, structure: nm, n: 2, m: 4}
+    - {id: wanda_2to4, policy: wanda, structure: nm, n: 2, m: 4}
+    - {id: random_2to4, policy: random, structure: nm, n: 2, m: 4}
+    - {id: mag_1to4, policy: magnitude, structure: nm, n: 1, m: 4}
+    - {id: wanda_1to4, policy: wanda, structure: nm, n: 1, m: 4}
+    - {id: random_1to4, policy: random, structure: nm, n: 1, m: 4}
