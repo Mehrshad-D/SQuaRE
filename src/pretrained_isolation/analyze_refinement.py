@@ -29,6 +29,8 @@ def main() -> None:
         if payload.get("suite") != "global_refinement":
             raise ValueError(f"Not a global-refinement result: {path}")
         model = payload["model"].get("short_name", payload["model"]["name"])
+        split = payload.get("refinement_set", {}).get("split", {})
+        split_request = split.get("request", {})
         for experiment in payload.get("experiments", []):
             if experiment.get("status") != "succeeded":
                 continue
@@ -39,6 +41,22 @@ def main() -> None:
             summary_rows.append({
                 "model": model,
                 "threshold_top1_pp": threshold,
+                "refinement_variant": payload.get("data", {}).get("label_space", {}).get(
+                    "refinement_variant"
+                ),
+                "refinement_samples": split.get(
+                    "refinement_samples",
+                    payload.get("refinement_set", {}).get("samples"),
+                ),
+                "final_evaluation_samples": split.get(
+                    "final_evaluation_samples",
+                    payload.get("data", {}).get("evaluation_dataset_samples"),
+                ),
+                "refinement_split_strategy": split_request.get("strategy"),
+                "refinement_split_seed": split_request.get("seed"),
+                "refinement_final_disjoint": split.get(
+                    "disjoint_from_final_evaluation"
+                ),
                 "refinement_constraint_satisfied": experiment["constraint_satisfied_on_refinement_set"],
                 "initial_refinement_top1_drop_pp": state["initial_top1_drop_pp"],
                 "final_refinement_top1_drop_pp": experiment["refinement_accuracy_drop_top1_pp"],

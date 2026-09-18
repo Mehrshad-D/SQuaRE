@@ -5,6 +5,7 @@ from torch import nn
 import pytest
 
 from pretrained_isolation.config import layerwise_configurations, load_config, selected
+from pretrained_isolation.data import refinement_split_request, stratified_split_indices
 from pretrained_isolation.engine import configure_layers, configure_one_layer
 from pretrained_isolation.masking import nm_mask, unstructured_mask
 from pretrained_isolation.modules import IsolatedLinear
@@ -61,6 +62,27 @@ def test_public_benchmark_configs_select_expected_layers():
         assert len(grid) == 16
         assert {item["weight_bits"] for item in grid} == {32, 8, 6, 4}
         assert {item["sparsity"] for item in grid} == {"dense", "2to4", "4to8", "3to8"}
+        assert refinement_split_request(cfg["data"]) == {
+            "source": "eval_dir",
+            "strategy": "stratified-disjoint",
+            "samples": 4000,
+            "seed": 42,
+        }
+
+
+def test_stratified_refinement_split_is_balanced_disjoint_and_deterministic():
+    targets = [target for target in range(4) for _ in range(5)]
+    refinement, final = stratified_split_indices(targets, 8, seed=42)
+    repeated, repeated_final = stratified_split_indices(targets, 8, seed=42)
+    assert refinement == repeated
+    assert final == repeated_final
+    assert len(refinement) == 8
+    assert len(final) == 12
+    assert set(refinement).isdisjoint(final)
+    assert set(refinement) | set(final) == set(range(20))
+    assert {target: sum(targets[index] == target for index in refinement) for target in range(4)} == {
+        0: 2, 1: 2, 2: 2, 3: 2,
+    }
 
 
 def test_public_model_regexes_match_expected_module_counts():

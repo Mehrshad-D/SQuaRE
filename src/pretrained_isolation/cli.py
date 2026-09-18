@@ -21,6 +21,14 @@ def main() -> None:
     parser.add_argument("--output", help="Output JSON path; only valid for a single suite")
     parser.add_argument("--max-eval-samples", type=int, help="Temporary smoke-test override")
     parser.add_argument("--calibration-samples", type=int, help="Temporary calibration-size override")
+    parser.add_argument(
+        "--refinement-samples", type=int,
+        help="Override the labeled matched-frequency refinement split size",
+    )
+    parser.add_argument(
+        "--refinement-seed", type=int,
+        help="Override the deterministic matched-frequency refinement split seed",
+    )
     parser.add_argument("--resume", action="store_true", help="Resume a layerwise, joint, or refinement output file")
     parser.add_argument("--layer-start", type=int, help="First selected layer index (inclusive)")
     parser.add_argument("--layer-end", type=int, help="Last selected layer index (exclusive)")
@@ -59,6 +67,10 @@ def main() -> None:
         cfg["data"]["max_eval_samples"] = args.max_eval_samples
     if args.calibration_samples is not None:
         cfg["data"]["calibration_samples"] = args.calibration_samples
+    if args.refinement_samples is not None:
+        cfg["data"].setdefault("refinement_split", {})["samples"] = args.refinement_samples
+    if args.refinement_seed is not None:
+        cfg["data"].setdefault("refinement_split", {})["seed"] = args.refinement_seed
     if args.ignore_reference_tolerance and cfg.get("reference"):
         cfg["reference"]["enforce_for_full_sweeps"] = False
     if args.suite in {"joint", "refinement"}:

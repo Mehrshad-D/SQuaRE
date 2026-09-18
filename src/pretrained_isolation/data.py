@@ -8,12 +8,12 @@ import torch
 from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision.datasets import ImageFolder
 from PIL import Image
-import timm
-from timm.data.imagenet_info import ImageNetInfo
 from tqdm import tqdm
 
 
 def build_transform(model):
+    import timm
+
     data_cfg = timm.data.resolve_model_data_config(model)
     return timm.data.create_transform(**data_cfg, is_training=False), data_cfg
 
@@ -69,6 +69,100 @@ class CanonicalNumericImageFolder(ImageFolder):
             )
         classes = [str(value) for value in values]
         return classes, {name: int(name) for name in classes}
+
+
+def refinement_split_request(cfg: dict) -> dict:
+    """Return a normalized, JSON-serializable refinement split request."""
+    raw = cfg.get("refinement_split")
+    if not raw:
+        return {
+            "source": "calib_dir",
+            "strategy": "random-subset",
+            "samples": int(cfg.get("calibration_samples", 1024)),
+            "seed": int(cfg.get("seed", 42)),
+        }
+    source = str(raw.get("source", "eval_dir"))
+    strategy = str(raw.get("strategy", "stratified-disjoint"))
+    if source != "eval_dir":
+        raise ValueError("data.refinement_split.source must be 'eval_dir'")
+    if strategy != "stratified-disjoint":
+        raise ValueError(
+            "data.refinement_split.strategy must be 'stratified-disjoint'"
+        )
+    return {
+        "source": source,
+        "strategy": strategy,
+        "samples": int(raw.get("samples", 4000)),
+        "seed": int(raw.get("seed", cfg.get("seed", 42))),
+    }
+
+
+def stratified_split_indices(
+    targets: list[int], refinement_samples: int, seed: int
+) -> tuple[list[int], list[int]]:
+    """Build deterministic, class-balanced, disjoint refinement/final indices."""
+    total = len(targets)
+    if refinement_samples <= 0 or refinement_samples >= total:
+        raise ValueError(
+            "refinement_samples must be greater than zero and smaller than the dataset"
+        )
+    by_class: dict[int, list[int]] = {}
+    for index, target in enumerate(targets):
+        by_class.setdefault(int(target), []).append(index)
+    classes = sorted(by_class)
+    if not classes:
+        raise ValueError("Cannot split an empty dataset")
+
+    base, remainder = divmod(refinement_samples, len(classes))
+    if any(len(by_class[target]) < base for target in classes):
+        raise ValueError(
+            "Requested refinement split is too large to remain class balanced"
+        )
+    generator = torch.Generator().manual_seed(int(seed))
+    class_order = torch.randperm(len(classes), generator=generator).tolist()
+    quotas = {target: base for target in classes}
+    for position in class_order:
+        if remainder == 0:
+            break
+        target = classes[position]
+        if quotas[target] < len(by_class[target]):
+            quotas[target] += 1
+            remainder -= 1
+    if remainder:
+        raise ValueError(
+            "Requested refinement split cannot be allocated across the available classes"
+        )
+
+    refinement: list[int] = []
+    for target in classes:
+        candidates = by_class[target]
+        permutation = torch.randperm(len(candidates), generator=generator).tolist()
+        refinement.extend(candidates[position] for position in permutation[:quotas[target]])
+    refinement_set = set(refinement)
+    final = [index for index in range(total) if index not in refinement_set]
+    refinement_order = torch.randperm(len(refinement), generator=generator).tolist()
+    final_order = torch.randperm(len(final), generator=generator).tolist()
+    return (
+        [refinement[position] for position in refinement_order],
+        [final[position] for position in final_order],
+    )
+
+
+def _indices_sha256(indices: list[int]) -> str:
+    serialized = ",".join(str(index) for index in indices).encode("utf-8")
+    return hashlib.sha256(serialized).hexdigest()
+
+
+def _class_count_range(targets: list[int], indices: list[int]) -> dict[str, int]:
+    counts: dict[int, int] = {}
+    for index in indices:
+        target = int(targets[index])
+        counts[target] = counts.get(target, 0) + 1
+    return {
+        "classes": len(counts),
+        "minimum_samples_per_class": min(counts.values()),
+        "maximum_samples_per_class": max(counts.values()),
+    }
 
 
 def _sha256_manifest(dataset: ImageFolder) -> dict[str, str]:
@@ -134,6 +228,8 @@ def _exclude_exact_overlap(calibration: ImageFolder, evaluation: ImageFolder) ->
 
 
 def _tiny_imagenet_datasets(calib_dir: Path, eval_dir: Path, transform):
+    from timm.data.imagenet_info import ImageNetInfo
+
     calibration = ImageFolder(calib_dir, transform=transform)
     classes = calibration.classes
     if len(classes) != 200:
@@ -227,4 +323,89 @@ def make_loaders(model, cfg: dict):
         len(evaluation),
         output_indices,
         label_space,
+    )
+
+
+def make_refinement_loaders(model, cfg: dict):
+    """Create refinement/final loaders, optionally from one disjoint eval split.
+
+    The legacy fallback preserves the previous calib_dir behavior for configs
+    that do not declare data.refinement_split. ImageNetV2 configs in this
+    project use a deterministic class-balanced split of matched-frequency.
+    """
+    request = refinement_split_request(cfg)
+    if request["source"] == "calib_dir":
+        loaders = make_loaders(model, cfg)
+        calibration, evaluation, data_cfg, calib_count, eval_count, output_indices, label_space = loaders
+        metadata = {
+            "request": request,
+            "source_path": str(Path(cfg["calib_dir"]).expanduser().resolve()),
+            "full_dataset_samples": None,
+            "refinement_samples": calib_count,
+            "final_evaluation_samples": eval_count,
+            "disjoint_from_final_evaluation": (
+                Path(cfg["calib_dir"]).expanduser().resolve()
+                != Path(cfg["eval_dir"]).expanduser().resolve()
+            ),
+            "legacy_calibration_directory_mode": True,
+        }
+        return (*loaders, metadata)
+
+    dataset_name = cfg.get("dataset", "imagenet1k").lower()
+    if dataset_name not in {"imagenetv2", "imagenet-v2"}:
+        raise ValueError(
+            "data.refinement_split from eval_dir is currently supported only for ImageNetV2"
+        )
+    transform, data_cfg = build_transform(model)
+    eval_dir = Path(cfg["eval_dir"]).expanduser()
+    if not eval_dir.is_dir():
+        raise FileNotFoundError(f"Evaluation directory not found: {eval_dir}")
+    full = CanonicalNumericImageFolder(eval_dir, transform=transform)
+    refinement_indices, final_indices = stratified_split_indices(
+        full.targets, request["samples"], request["seed"]
+    )
+    if set(refinement_indices) & set(final_indices):
+        raise RuntimeError("Refinement and final evaluation indices overlap")
+    if len(refinement_indices) + len(final_indices) != len(full):
+        raise RuntimeError("Refinement/final split does not cover the full dataset")
+
+    refinement = Subset(full, refinement_indices)
+    evaluation = Subset(full, final_indices)
+    common = {
+        "batch_size": int(cfg.get("batch_size", 64)),
+        "num_workers": int(cfg.get("num_workers", 4)),
+        "pin_memory": True,
+    }
+    metadata = {
+        "request": request,
+        "source_path": str(eval_dir.resolve()),
+        "full_dataset_samples": len(full),
+        "refinement_samples": len(refinement),
+        "final_evaluation_samples": len(evaluation),
+        "disjoint_from_final_evaluation": True,
+        "union_covers_full_dataset": True,
+        "refinement_indices_sha256": _indices_sha256(refinement_indices),
+        "final_evaluation_indices_sha256": _indices_sha256(final_indices),
+        "refinement_class_balance": _class_count_range(full.targets, refinement_indices),
+        "final_evaluation_class_balance": _class_count_range(full.targets, final_indices),
+        "legacy_calibration_directory_mode": False,
+    }
+    label_space = {
+        "dataset": "ImageNetV2",
+        "evaluation_variant": cfg.get("evaluation_variant", "matched-frequency"),
+        "refinement_variant": cfg.get("evaluation_variant", "matched-frequency"),
+        "evaluation_mode": "full-1000-way-canonical-numeric-labels",
+        "num_classes": 1000,
+        "evaluation_subset_of_full_dataset": True,
+        "refinement_split": metadata,
+    }
+    return (
+        DataLoader(refinement, shuffle=False, **common),
+        DataLoader(evaluation, shuffle=False, **common),
+        data_cfg,
+        len(refinement),
+        len(evaluation),
+        None,
+        label_space,
+        metadata,
     )

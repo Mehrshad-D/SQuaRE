@@ -268,8 +268,10 @@ layer choices have been initialized. For each accuracy budget it:
 1. Builds each layer's isolated accuracy-energy Pareto frontier and retains
    `FP32__dense` as a guaranteed safety anchor.
 2. Starts from the same minimum-energy per-layer assignment used by `joint`.
-3. Measures the assignment on the deterministic labeled subset of the
-   calibration variant (separate from the final ImageNetV2 evaluation set).
+3. Splits ImageNetV2 matched-frequency deterministically and by class into a
+   4,000-image refinement subset (four images per class) and a disjoint
+   6,000-image final subset (six images per class), then measures every search
+   probe only on the refinement subset.
 4. If the global budget is violated, probes every layer's next safer frontier
    point and accepts the largest measured accuracy recovery per added energy.
 5. If all single moves stall, probes pairs among the six best singles and then
@@ -280,8 +282,12 @@ layer choices have been initialized. For each accuracy budget it:
 
 Every probe and accepted move is atomically saved. `--resume` therefore reuses
 the persistent assignment cache instead of repeating completed model evaluations.
-The global constraint is optimized on the refinement subset; the separate final
-accuracy is reported, not used to make search decisions.
+The global constraint is optimized on the matched-frequency refinement subset;
+the disjoint matched-frequency final accuracy is reported, not used by the
+refinement search. Split indices and their SHA-256 fingerprints are stored in
+the JSON output. The existing layer-wise JSON can still initialize the search,
+but because that legacy sweep evaluated all 10,000 matched-frequency images,
+its isolated lookup measurements are not a fully untouched selection source.
 
 Install the new editable entry points in the existing virtual environment:
 
@@ -291,7 +297,7 @@ python -m pip install --no-deps --no-build-isolation -e .
 ```
 
 Run all three models using the existing `outputs-v2` layer-wise results and write
-new results under `outputs-v4`:
+new results under `outputs-v5`:
 
 ```bash
 mkdir -p logs
@@ -318,8 +324,10 @@ ptq-isolate \
   --config configs/deit_tiny_imagenetv2.yaml \
   --suite refinement \
   --layerwise-results outputs-v2/imagenetv2/deit_tiny/deit_tiny_imagenetv2_layerwise.json \
-  --output outputs-v4/imagenetv2/deit_tiny/deit_tiny_imagenetv2_global_refinement.json \
+  --output outputs-v5/imagenetv2/deit_tiny/deit_tiny_imagenetv2_global_refinement.json \
   --accuracy-thresholds 0.1 0.5 1.0 \
+  --refinement-samples 4000 \
+  --refinement-seed 42 \
   --refinement-pairwise-top-k 6 \
   --ignore-reference-tolerance \
   --resume
@@ -331,18 +339,21 @@ Useful controls are:
 - `--no-refinement-block-fallback`: disable the block move after single/pair stalls.
 - `--refinement-pairwise-top-k K`: control pairwise fallback cost; `0` disables it.
 - `--refinement-max-accepted-moves N`: cap accepted search iterations.
-- `--calibration-samples N`: change refinement/calibration subset size. Resume
-  requires the same value used to create the output file.
+- `--refinement-samples N`: change the labeled matched-frequency refinement
+  split size. The remainder is the disjoint final set. Resume requires the same
+  size and seed used to create the output file.
+- `--refinement-seed N`: change the deterministic stratified split seed.
+- `--calibration-samples N`: change calibration size for non-refinement suites.
 
 The analysis command writes `refinement_summary.csv`, `refinement_moves.csv`,
 `refinement_selected_layers.csv`, and `analysis_summary.json`:
 
 ```bash
 ptq-analyze-refinement \
-  outputs-v4/imagenetv2/deit_tiny/deit_tiny_imagenetv2_global_refinement.json \
-  outputs-v4/imagenetv2/swin_tiny/swin_tiny_imagenetv2_global_refinement.json \
-  outputs-v4/imagenetv2/resnet18/resnet18_imagenetv2_global_refinement.json \
-  --output-dir outputs-v4/imagenetv2/analysis
+  outputs-v5/imagenetv2/deit_tiny/deit_tiny_imagenetv2_global_refinement.json \
+  outputs-v5/imagenetv2/swin_tiny/swin_tiny_imagenetv2_global_refinement.json \
+  outputs-v5/imagenetv2/resnet18/resnet18_imagenetv2_global_refinement.json \
+  --output-dir outputs-v5/imagenetv2/analysis
 ```
 
 For a persistent background job:

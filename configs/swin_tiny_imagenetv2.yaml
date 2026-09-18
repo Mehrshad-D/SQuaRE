@@ -12,17 +12,23 @@ reference:
   top1: 69.45
   top5: 89.02
   tolerance_pp: 0.15
-  enforce_for_full_sweeps: true
+  enforce_for_full_sweeps: false
   source: timm results-imagenetv2-matched-frequency.csv
   url: https://github.com/huggingface/pytorch-image-models/blob/main/results/results-imagenetv2-matched-frequency.csv
 data:
   dataset: imagenetv2
   eval_dir: data/imagenetv2/imagenetv2-matched-frequency-format-val
+  # Used by non-refinement suites. Global refinement uses the split below.
   calib_dir: data/imagenetv2/imagenetv2-threshold0.7-format-val
   evaluation_variant: matched-frequency
   calibration_variant: threshold-0.7
   exclude_calibration_eval_duplicates: true
   calibration_samples: 1024
+  refinement_split:
+    source: eval_dir
+    strategy: stratified-disjoint
+    samples: 4000
+    seed: 42
   batch_size: 64
   num_workers: 8
   seed: 42

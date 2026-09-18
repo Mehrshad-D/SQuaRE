@@ -12,7 +12,7 @@ import traceback
 import timm
 import torch
 
-from .data import make_loaders
+from .data import make_loaders, make_refinement_loaders, refinement_split_request
 from .engine import (
     apply_sparsity,
     calibrate,
@@ -66,7 +66,8 @@ def _base_payload(
 ) -> dict:
     reference = deepcopy(cfg.get("reference", {}))
     if reference:
-        if cfg["data"].get("max_eval_samples") is None:
+        evaluation_is_subset = bool(label_space.get("evaluation_subset_of_full_dataset"))
+        if cfg["data"].get("max_eval_samples") is None and not evaluation_is_subset:
             top1_delta = dense["top1"] - float(reference["top1"])
             top5_delta = dense["top5"] - float(reference["top5"])
             tolerance = float(reference.get("tolerance_pp", 0.15))
@@ -79,7 +80,10 @@ def _base_payload(
         else:
             reference["comparable"] = False
             reference["within_tolerance"] = None
-            reference["reason"] = "Partial smoke-test evaluation is not comparable to the 10,000-image reference"
+            reference["reason"] = (
+                "A held-out subset or partial smoke-test evaluation is not comparable "
+                "to the public 10,000-image reference"
+            )
     return {
         "schema_version": 1,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -640,11 +644,14 @@ def run_refinement(
     if source.get("model", {}).get("name") != config["model"]["name"]:
         raise ValueError("Layerwise result model does not match the requested config")
 
+    split_request = refinement_split_request(config["data"])
+
     settings = {
         "pairwise_top_k": int(pairwise_top_k),
         "enable_block_fallback": bool(enable_block_fallback),
         "enable_energy_reclamation": bool(enable_energy_reclamation),
         "max_accepted_moves": max_accepted_moves,
+        "refinement_split": split_request,
     }
     default_name = f"{config['model']['short_name']}_global_refinement.json"
     out = Path(output or Path(config.get("output_dir", "outputs")) / default_name)
@@ -658,8 +665,8 @@ def run_refinement(
             and previous.get("accuracy_thresholds_top1_pp") == thresholds
             and previous.get("refinement_settings") == settings
             and previous.get("data", {}).get("max_eval_samples") == config["data"].get("max_eval_samples")
-            and previous.get("data", {}).get("calibration_samples")
-            == int(config["data"].get("calibration_samples", 1024))
+            and previous.get("refinement_settings", {}).get("refinement_split")
+            == split_request
         )
         if not same_request:
             raise ValueError(f"Refinement resume file does not match this request: {out}")
@@ -682,24 +689,44 @@ def run_refinement(
         eval_count,
         output_indices,
         label_space,
-    ) = make_loaders(model, config["data"])
+        split_metadata,
+    ) = make_refinement_loaders(model, config["data"])
+    print(
+        "[refinement-data] "
+        f"source={split_metadata['source_path']} | "
+        f"strategy={split_metadata['request']['strategy']} | "
+        f"refinement={calib_count} | final={eval_count} | "
+        f"disjoint={split_metadata['disjoint_from_final_evaluation']} | "
+        f"seed={split_metadata['request']['seed']}",
+        flush=True,
+    )
     max_eval = config["data"].get("max_eval_samples")
     dense = evaluate(model, evaluation, device, max_eval, output_indices)
     dense_refinement = evaluate(model, calibration, device, None, output_indices)
     source_dense = source.get("dense_baseline", {})
-    if source_dense.get("evaluated_samples") != dense["evaluated_samples"]:
-        raise ValueError("Final evaluation sample count differs from the layerwise selection source")
-    if any(abs(float(source_dense[key]) - dense[key]) > 1e-9 for key in ("top1", "top5")):
+    source_eval_dir = source.get("data", {}).get("eval_dir")
+    if source_eval_dir and (
+        Path(source_eval_dir).expanduser().resolve()
+        != Path(config["data"]["eval_dir"]).expanduser().resolve()
+    ):
         raise ValueError(
-            "Current dense final accuracy differs from the layerwise selection source; "
-            "use the same model, preprocessing, and evaluation data"
+            "Layerwise selection source and refinement run use different evaluation directories"
+        )
+    full_dataset_samples = split_metadata.get("full_dataset_samples")
+    if (
+        full_dataset_samples is not None
+        and source_dense.get("evaluated_samples") != full_dataset_samples
+    ):
+        raise ValueError(
+            "Layerwise source was not evaluated on the complete dataset used for the "
+            "matched-frequency refinement/final split"
         )
 
     payload = _base_payload(
         config, dense, data_cfg, calib_count, eval_count, total_parameters, label_space
     )
     payload.update({
-        "schema_version": 4,
+        "schema_version": 5,
         "suite": "global_refinement",
         "output_file": str(out.resolve()),
         "accuracy_thresholds_top1_pp": thresholds,
@@ -707,14 +734,27 @@ def run_refinement(
             "path": str(source_path.resolve()),
             "sha256": source_sha256,
             "dense_baseline": deepcopy(source_dense),
+            "evaluation_overlap_note": (
+                "The supplied legacy layerwise sweep used the complete matched-frequency "
+                "set; its isolated lookup measurements therefore include images in both "
+                "the new refinement and final subsets. Rerun layerwise selection on a "
+                "separate split for a fully untouched final test."
+            ),
         },
         "refinement_set": {
-            "source": "deterministic labeled subset of data.calib_dir",
-            "path": str(Path(config["data"]["calib_dir"]).expanduser().resolve()),
+            "source": (
+                "deterministic class-balanced subset of data.eval_dir"
+                if split_request["source"] == "eval_dir"
+                else "deterministic labeled subset of data.calib_dir"
+            ),
+            "path": split_metadata["source_path"],
             "samples": dense_refinement["evaluated_samples"],
             "also_used_without_labels_for_activation_range_calibration": True,
             "dense_accuracy": deepcopy(dense_refinement),
-            "final_evaluation_set_is_separate": True,
+            "split": deepcopy(split_metadata),
+            "final_evaluation_set_is_separate": split_metadata[
+                "disjoint_from_final_evaluation"
+            ],
         },
         "refinement_settings": settings,
         "experiment_design": {
@@ -722,12 +762,19 @@ def run_refinement(
             "repair": "largest contextual top-1 recovery per added normalized energy",
             "fallback": "pairwise probes followed by a simultaneous next-safer block probe",
             "reclamation": "largest normalized-energy saving per contextual top-1 cost among feasible moves",
-            "accuracy_constraint": "measured on the held-out refinement subset",
-            "final_reporting": "one evaluation on the separate final evaluation set after search",
+            "accuracy_constraint": (
+                "measured on a deterministic class-balanced matched-frequency refinement subset"
+            ),
+            "final_reporting": (
+                "one evaluation on the disjoint matched-frequency final subset after search"
+            ),
             "energy_formula": "E * (k/32) * (a/b); dense uses a/b = 1",
         },
         "experiments": previous.get("experiments", []) if previous else [],
     })
+    payload["data"]["refinement_samples"] = calib_count
+    payload["data"]["final_evaluation_samples"] = eval_count
+    payload["data"]["refinement_split"] = deepcopy(split_metadata)
     payload.pop("completed_at_utc", None)
     _atomic_json(out, payload)
 
