@@ -18,6 +18,7 @@ from ..engine import calibrate, environment, evaluate, instrument, seed_all
 from ..runner import _atomic_json, create_pretrained
 from . import ALGORITHM_VERSION, UPSTREAM_REVISION
 from .core import CompressionTimeout, allocate_dp
+from .numerics import configure_execution
 from .protocol import (check_accuracy, check_protocol, dataset_manifest, digest,
                        matched_config, source_fingerprint, tensor_fingerprint)
 from .runtime import (apply_assignment, atomic_torch, build_candidates, collect_statistics,
@@ -79,6 +80,33 @@ def best_feasible(probes, threshold, dense_top1):
     return min(feasible, key=lambda p: (p["normalized_energy"], -p["accuracy"]["top1"], p["key"]))
 
 
+def save_dense_checks(path, fingerprint, dense, dense_refinement, reference, tolerance, execution):
+    """Keep measured evidence even when a gate fails; never cache it as passed."""
+    report = {"fingerprint": fingerprint, "dense_final": dense,
+              "dense_refinement": dense_refinement, "execution_settings": execution,
+              "tolerance_pp": tolerance, "checks": {}, "passed": True, "checked_at": now()}
+    errors = []
+    for label, actual, expected in (
+        ("final", dense, reference["dense_baseline"]),
+        ("refinement", dense_refinement, reference["refinement_set"]["dense_accuracy"]),
+    ):
+        row = {"actual": actual, "expected": expected,
+               "actual_minus_expected_pp": {k: actual[k] - expected[k] for k in ("top1", "top5")}}
+        try:
+            check_accuracy(actual, expected, tolerance)
+            row["passed"] = True
+        except ValueError as error:
+            row["passed"] = False
+            row["error"] = str(error)
+            errors.append(f"{label}: {error}")
+        report["checks"][label] = row
+    report["passed"] = not errors
+    _atomic_json(path, report)
+    if errors:
+        raise ValueError("; ".join(errors) + f". Diagnostics saved to {path}")
+    return report
+
+
 def run(args):
     directory = Path(args.output_dir)
     with exclusive_output(directory):
@@ -103,11 +131,12 @@ def _run(args, directory):
     device = torch.device(args.device)
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA requested but unavailable; no silent CPU fallback")
-    torch.backends.cuda.matmul.allow_tf32 = False
-    torch.backends.cudnn.allow_tf32 = False
+    execution = configure_execution(args.numerics)
     seed_all(cfg["seed"])
     setup_start = time.perf_counter()
     print(f"[OBC] {args.mode}: {cfg['model']['name']} | {device}", flush=True)
+    print(f"[OBC] numerics={execution['mode']} | matmul_tf32={execution['cuda_matmul_allow_tf32']} "
+          f"| cudnn_tf32={execution['cudnn_allow_tf32']}", flush=True)
     model = create_pretrained(cfg).eval().to(device)
     checkpoint_sha = tensor_fingerprint(model.state_dict())
     calibration, evaluation, data_cfg, nc, ne, output_indices, labels, split = make_refinement_loaders(model, cfg["data"])
@@ -122,7 +151,8 @@ def _run(args, directory):
                 "positions_per_example": args.positions_per_example, "score_rows": args.score_rows,
                 "quantizer": "SQuaRE symmetric per-output-channel minmax W / per-layer maxabs A",
                 "conv_layout": "flattened input dimension (C,Kh,Kw)",
-                "normalization_correction": False, "hessian": "full sampled-input Gram with relative damping"}
+                "normalization_correction": False, "hessian": "full sampled-input Gram with relative damping",
+                "execution_settings": execution}
     identity = {"reference_sha256": hashlib.sha256(reference_bytes).hexdigest(),
                 "checkpoint_sha256": checkpoint_sha, "source_sha256": source_fingerprint(),
                 "dataset_sha256": {k: digest(v) for k, v in manifests.items()},
@@ -165,18 +195,19 @@ def _run(args, directory):
     else:
         dense = evaluate(model, evaluation, device, None, output_indices)
         dense_refinement = evaluate(model, calibration, device, None, output_indices)
-        check_accuracy(dense, reference["dense_baseline"], args.baseline_tolerance)
-        check_accuracy(dense_refinement, reference["refinement_set"]["dense_accuracy"], args.baseline_tolerance)
-        _atomic_json(checks_path, {"fingerprint": fingerprint, "dense_final": dense,
-                                  "dense_refinement": dense_refinement})
-    check_accuracy(dense, reference["dense_baseline"], args.baseline_tolerance)
-    check_accuracy(dense_refinement, reference["refinement_set"]["dense_accuracy"], args.baseline_tolerance)
+    checks = save_dense_checks(checks_path, fingerprint, dense, dense_refinement, reference,
+                               args.baseline_tolerance, execution)
     modules = instrument(model, cfg, 32, 32)
     expected = list(reference.get("pareto_frontiers", {}))
     if list(modules) != expected:
         raise ValueError("Selected layer names/order differ from reference")
     if len(modules) != reference["selected_layer_count"]:
         raise ValueError("Selected layer count differs from reference")
+    if args.mode == "baseline":
+        metadata["first_setup_seconds"] = existing.get("first_setup_seconds", time.perf_counter() - setup_start) if existing else time.perf_counter() - setup_start
+        _atomic_json(manifest_path, metadata)
+        print(f"[OBC] Dense baseline checks passed: {checks_path}", flush=True)
+        return checks
     ranges_path = directory / "activation_ranges.pt"
     if args.resume and ranges_path.exists():
         ranges = load_tensors(ranges_path)
@@ -345,6 +376,7 @@ def _run(args, directory):
         "suite": "obc_comparison", "method": "OBC (matched ExactOBS + bounded DP, adapted)",
         "fingerprint": fingerprint, "reference_sha256": identity["reference_sha256"],
         "model": cfg["model"], "environment": environment(), "protocol": metadata["protocol"],
+        "execution_settings": execution,
         "dense_baseline": dense, "dense_refinement": dense_refinement,
         "preparation_seconds": preparation_seconds,
         "pilot_candidate_seconds_excluded": sum(a["seconds"] for a in attempts if a["mode"] == "profile" and not a["full_output_rows"]),
@@ -386,12 +418,14 @@ def _run(args, directory):
 
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("mode", choices=["profile", "run"])
+    p.add_argument("mode", choices=["baseline", "profile", "run"])
     p.add_argument("--config", required=True)
     p.add_argument("--reference", required=True, help="Completed SQuaRE global_refinement JSON")
     p.add_argument("--output-dir", required=True)
     p.add_argument("--data-root", help="Directory containing both ImageNetV2 variants")
     p.add_argument("--device", default="cuda")
+    p.add_argument("--numerics", choices=["square-default", "strict-fp32"], default="square-default",
+                   help="Match SQuaRE's PyTorch 2.6 backend defaults; strict-fp32 is an explicit alternative")
     p.add_argument("--batch-size", type=int)
     p.add_argument("--workers", type=int)
     p.add_argument("--resume", action="store_true")

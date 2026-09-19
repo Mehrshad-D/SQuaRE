@@ -155,6 +155,8 @@ def compare(reference_files, obc_files, output_dir, layerwise_files=()):
             "obc_final_seconds_all_budgets": obc_final_seconds,
             "obc_search_evaluations_shared": obc["search_evaluations"],
             "same_recorded_gpu": same_gpu,
+            "obc_execution_settings": json.dumps(obc.get("execution_settings", {}), sort_keys=True),
+            "reference_execution_flags_recorded": "execution_settings" in reference,
             "timing_caveat": "Historical SQuaRE stage timers exclude some setup. OBC preparation/search shared once across budgets. No automatic speedup claim."})
     if not summaries:
         raise ValueError("No comparisons")

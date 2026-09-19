@@ -1,8 +1,57 @@
-# Matched-setting OBC baseline (v0.8.1)
+# Matched-setting OBC baseline (v0.8.2)
 
 This package adds a **profile-first** baseline for DeiT-Tiny, Swin-Tiny and
 ResNet-18, at 0.1 / 0.5 / 1.0 percentage-point accuracy-drop budgets. No new
 ImageNetV2 results are bundled: those require running on the server.
+
+Version 0.8.2 corrects an inference-settings mismatch introduced by the OBC
+adapter. The legacy SQuaRE runner left the PyTorch 2.6 defaults in place:
+CUDA matrix-multiply TF32 disabled and cuDNN convolution TF32 allowed. OBC
+v0.8.0/v0.8.1 forced both off. This can change CNN dense predictions; it is a
+likely explanation for the reported ResNet-18 59.35% vs 59.38% baseline, but
+the corrected server evaluation must verify that explanation. See
+[PyTorch numerical accuracy](https://docs.pytorch.org/docs/stable/notes/numerical_accuracy.html).
+
+The new default `--numerics square-default` explicitly uses those legacy
+defaults, with cuDNN benchmarking and deterministic algorithms disabled, as
+in the original runner. `--numerics strict-fp32` is available as an explicit
+diagnostic alternative. The mode and resolved flags are printed and included
+in cache identity and final results. Historical JSONs did not record their
+flags, so this is a reconstruction from the code, not proof of the old GPU
+execution settings. The 0.02-pp baseline tolerance is unchanged.
+
+Dense measurements are now written to `dense_checks.json` **before** the
+accuracy gate. Failures retain top-1/top-5 on both splits, expected values,
+deltas, tolerance, execution flags, and `passed: false`. A failed diagnostic
+does not authorize compression, including on resume. The `baseline` mode
+performs just those checks and layer-scope validation, with no candidate work.
+
+### Update an existing pilot after the ResNet baseline error
+
+Extract `obc-numerics-fix-v0.8.2.zip` in the existing server project directory.
+It replaces the OBC CLI, protocol checker, and comparison exporter, and adds
+`obc/numerics.py`. It includes the earlier tuple/list fix. Keep the successful
+DeiT/Swin pilot files; **do not delete them**. Their settings and the old code
+fingerprint differ, so new code must use a new output directory. To rerun only
+ResNet-18 from that project directory:
+
+```bash
+obc_data_root=/storage/users/pdarbani/Mehrshad/Transformer/v4.0/pretrained-isolation-framework/data/imagenetv2
+nohup env PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}" python \
+  -m pretrained_isolation.obc.cli profile \
+  --config configs/resnet18_imagenetv2.yaml \
+  --reference outputs-v4/imagenetv2/resnet18/resnet18_imagenetv2_global_refinement.json \
+  --output-dir outputs-obc/v4-numerics/resnet18 \
+  --data-root "$obc_data_root" --numerics square-default --resume \
+  > logs/obc-resnet-pilot.log 2>&1 &
+```
+
+On success, collect `outputs-obc/v4-numerics/resnet18/pilot.json` and the two
+previous pilot JSONs to review runtime. These pilot timings come from different
+numerical modes and are preliminary. For actual final comparisons, run **all
+three networks with the same agreed execution mode** in new output folders.
+If the new ResNet gate still fails, inspect/send its `dense_checks.json`,
+`manifest.json`, and log. Do not widen tolerance just to pass the gate.
 
 Version 0.8.1 fixes the preprocessing validator: live timm tuples and their
 saved JSON lists are compared in the same JSON representation. Input size,
@@ -112,7 +161,7 @@ accuracy budget. Fixed search settings are required on resume.
 
 Use a **new sibling directory** on the server. Do not overwrite the directory
 or editable installation used by the currently running SQuaRE experiment.
-The zip has a top-level `pretrained-isolation-framework-v0.8.1/` folder, code,
+The zip has a top-level `pretrained-isolation-framework-v0.8.2/` folder, code,
 tests, configs, documentation, and the original tracked v2/v4 reference JSONs.
 It excludes data, model checkpoints, papers, figure drafts, and OBC outputs.
 `PACKAGE_MANIFEST.json` records SHA-256 hashes for the packaged files.
@@ -120,15 +169,15 @@ It excludes data, model checkpoints, papers, figure drafts, and OBC outputs.
 On your Mac (replace the SSH destination and directory):
 
 ```bash
-scp pretrained-isolation-framework-v0.8.1.zip USER@SERVER:/YOUR/WORK/DIRECTORY/
+scp pretrained-isolation-framework-v0.8.2.zip USER@SERVER:/YOUR/WORK/DIRECTORY/
 ```
 
 On the server:
 
 ```bash
 cd /YOUR/WORK/DIRECTORY
-unzip pretrained-isolation-framework-v0.8.1.zip
-cd pretrained-isolation-framework-v0.8.1
+unzip pretrained-isolation-framework-v0.8.2.zip
+cd pretrained-isolation-framework-v0.8.2
 
 # Activate the existing working environment with torch/timm installed.
 # Use your actual activation command/path; no package upgrade is required.

@@ -216,6 +216,44 @@ def test_preprocessing_rejects_missing_or_added_fields(extra):
         check_protocol(reference, actual, {}, 256, 10000, {})
 
 
+def test_numerical_modes_set_explicit_flags_and_change_identity():
+    from pretrained_isolation.obc.numerics import configure_execution
+    from pretrained_isolation.obc.protocol import digest
+    old = (torch.backends.cuda.matmul.allow_tf32, torch.backends.cudnn.allow_tf32,
+           torch.backends.cudnn.benchmark, torch.backends.cudnn.deterministic,
+           torch.are_deterministic_algorithms_enabled(), torch.is_deterministic_algorithms_warn_only_enabled())
+    try:
+        strict = configure_execution("strict-fp32")
+        assert not strict["cuda_matmul_allow_tf32"] and not strict["cudnn_allow_tf32"]
+        matched = configure_execution("square-default")
+        assert not matched["cuda_matmul_allow_tf32"] and matched["cudnn_allow_tf32"]
+        assert not matched["cudnn_benchmark"] and not matched["cudnn_deterministic"]
+        assert digest(strict) != digest(matched)
+        with pytest.raises(ValueError, match="Unknown"):
+            configure_execution("choose-the-best-accuracy")
+    finally:
+        torch.backends.cuda.matmul.allow_tf32, torch.backends.cudnn.allow_tf32 = old[:2]
+        torch.backends.cudnn.benchmark, torch.backends.cudnn.deterministic = old[2:4]
+        torch.use_deterministic_algorithms(old[4], warn_only=old[5])
+
+
+def test_failed_dense_check_preserves_both_metrics_and_both_splits(tmp_path):
+    pytest.importorskip("timm")
+    from pretrained_isolation.obc.cli import save_dense_checks
+    expected = {"top1": 59.38, "top5": 80.93, "evaluated_samples": 10000, "seconds": 1.}
+    refinement = {"top1": 64.84375, "top5": 88.28125, "evaluated_samples": 256, "seconds": .1}
+    reference = {"dense_baseline": expected, "refinement_set": {"dense_accuracy": refinement}}
+    actual = {**expected, "top1": 59.35}
+    path = tmp_path / "dense_checks.json"
+    with pytest.raises(ValueError, match="Diagnostics saved"):
+        save_dense_checks(path, "fingerprint", actual, refinement, reference, .02, {"cudnn_allow_tf32": True})
+    report = json.loads(path.read_text())
+    assert not report["passed"] and report["checks"]["refinement"]["passed"]
+    assert report["checks"]["final"]["actual_minus_expected_pp"]["top1"] == pytest.approx(-.03)
+    assert report["checks"]["final"]["actual_minus_expected_pp"]["top5"] == 0
+    assert save_dense_checks(path, "fingerprint", expected, refinement, reference, .02, {})["passed"]
+
+
 @pytest.mark.parametrize("model,expected", [("deit_tiny", 48), ("swin_tiny", 48), ("resnet18", 19)])
 def test_real_architecture_adapters_preserve_dense_predictions(model, expected):
     timm = pytest.importorskip("timm")
@@ -292,7 +330,12 @@ def test_full_cpu_workflow_freeze_resume_and_compare(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "evaluate", checked_eval)
     args = cli.parser().parse_args(["run", "--config", "unused", "--reference", str(reference_path),
         "--output-dir", str(tmp_path / "obc"), "--device", "cpu", "--max-hours", "1", "--max-evaluations", "6"])
+    args.mode = "baseline"
+    checks = cli.run(args)
+    assert checks["passed"]
+    assert not (tmp_path / "obc/cache").exists()
     args.mode = "profile"
+    args.resume = True
     profile = cli.run(args)
     assert profile["layers"][0]["sampled_output_rows"] == 2
     assert not (tmp_path / "obc/cache/layer_000/FP32__dense.pt").exists()
@@ -306,6 +349,10 @@ def test_full_cpu_workflow_freeze_resume_and_compare(tmp_path, monkeypatch):
     resumed = cli.run(args)
     assert len(resumed["experiments"]) == 3
     assert events == []
+    args.numerics = "strict-fp32"
+    with pytest.raises(ValueError, match="Cache identity changed"):
+        cli.run(args)
+    args.numerics = "square-default"
     rows = compare([reference_path], [tmp_path / "obc/results.json"], tmp_path / "comparison")
     assert len(rows) == 6
     assert (tmp_path / "comparison/comparison_table.tex").exists()

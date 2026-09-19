@@ -1,7 +1,8 @@
 # Public Pretrained Quantization–Sparsity Isolation Framework
 
-Version 0.8.1 provides a profile-first, matched-setting OBC/ExactOBS baseline
-and fixes preprocessing comparison across live tuples and saved JSON lists.
+Version 0.8.2 provides a profile-first, matched-setting OBC/ExactOBS baseline,
+JSON-safe preprocessing checks, explicit SQuaRE-compatible inference numerics,
+and saved diagnostics for failed dense baseline checks.
 See [OBC comparison and server instructions](docs/OBC_COMPARISON.md).
 The new server scripts run from their own source directory without replacing
 the environment or code used by an ongoing SQuaRE experiment.
