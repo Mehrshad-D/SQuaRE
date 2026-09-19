@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pretrained-isolation"
-version = "0.7.0"
+version = "0.8.0"
 description = "Isolated post-training quantization and sparsity sweeps for pretrained ImageNet models"
 requires-python = ">=3.10"
 dependencies = [
@@ -25,6 +25,8 @@ ptq-download-imagenetv2 = "pretrained_isolation.download:main"
 ptq-analyze-layerwise = "pretrained_isolation.analyze_layerwise:main"
 ptq-analyze-joint = "pretrained_isolation.analyze_joint:main"
 ptq-analyze-refinement = "pretrained_isolation.analyze_refinement:main"
+ptq-obc = "pretrained_isolation.obc.cli:main"
+ptq-compare-obc = "pretrained_isolation.obc.compare:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,0 +1,432 @@
+"""Profile or run the matched-setting OBC baseline against a saved SQuaRE run."""
+from __future__ import annotations
+
+import argparse
+from contextlib import contextmanager
+from copy import deepcopy
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import time
+
+import torch
+
+from ..config import load_config, layerwise_configurations
+from ..data import make_refinement_loaders
+from ..engine import calibrate, environment, evaluate, instrument, seed_all
+from ..runner import _atomic_json, create_pretrained
+from . import ALGORITHM_VERSION, UPSTREAM_REVISION
+from .core import CompressionTimeout, allocate_dp
+from .protocol import (check_accuracy, check_protocol, dataset_manifest, digest,
+                       matched_config, source_fingerprint, tensor_fingerprint)
+from .runtime import (apply_assignment, atomic_torch, build_candidates, collect_statistics,
+                      load_tensors, synchronize)
+
+
+def now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+@contextmanager
+def exclusive_output(directory: Path):
+    """OS releases the advisory lock even after a crash; no stale-lock guessing."""
+    import fcntl
+    directory.mkdir(parents=True, exist_ok=True)
+    with (directory / ".obc.lock").open("a") as stream:
+        try:
+            fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise RuntimeError(f"Another OBC process owns {directory}") from error
+        try:
+            yield
+        finally:
+            fcntl.flock(stream, fcntl.LOCK_UN)
+
+
+def representative_layers(modules):
+    ordered = sorted(modules, key=lambda name: (modules[name].weight[0].numel(),
+                                               modules[name].weight.numel(), name))
+    return list(dict.fromkeys([ordered[0], ordered[len(ordered) // 2], ordered[-1]]))
+
+
+def proposed_assignments(candidates, max_evaluations):
+    """A fixed grid with dense anchor; no false monotonicity assumption or test feedback."""
+    names = list(candidates)
+    dense = {n: next(c["configuration"] for c in candidates[n]
+                     if c["configuration"] == "FP32__dense") for n in names}
+    proposals = [dense]
+    seen = {tuple(dense.values())}
+    minimum = sum(min(c["normalized_energy"] for c in candidates[n]) for n in names)
+    maximum = float(len(names))
+    # Bias resolution toward cheaper points; all budgets share this fixed pool.
+    for i in range(max_evaluations - 1):
+        fraction = i / max(1, max_evaluations - 2)
+        cap = minimum + (maximum - minimum) * fraction ** 2
+        indices = allocate_dp([candidates[n] for n in names], cap)
+        assignment = {n: candidates[n][idx]["configuration"] for n, idx in zip(names, indices)}
+        key = tuple(assignment.values())
+        if key not in seen:
+            proposals.append(assignment)
+            seen.add(key)
+    return proposals
+
+
+def best_feasible(probes, threshold, dense_top1):
+    feasible = [p for p in probes if dense_top1 - p["accuracy"]["top1"] <= threshold + 1e-9]
+    if not feasible:
+        raise ValueError("Dense safety anchor missing or inconsistent")
+    return min(feasible, key=lambda p: (p["normalized_energy"], -p["accuracy"]["top1"], p["key"]))
+
+
+def run(args):
+    directory = Path(args.output_dir)
+    with exclusive_output(directory):
+        return _run(args, directory)
+
+
+def _run(args, directory):
+    invocation_start = time.monotonic()
+    reference_path = Path(args.reference)
+    reference_bytes = reference_path.read_bytes()
+    reference = json.loads(reference_bytes)
+    if not reference.get("completed_at_utc") or any(e.get("status") != "succeeded" for e in reference.get("experiments", [])):
+        raise ValueError("Reference run must be complete before an OBC comparison")
+    cfg = matched_config(load_config(args.config), reference)
+    if args.data_root:
+        for key in ("eval_dir", "calib_dir"):
+            cfg["data"][key] = str(Path(args.data_root) / Path(reference["data"][key]).name)
+    if args.batch_size:
+        cfg["data"]["batch_size"] = args.batch_size
+    if args.workers is not None:
+        cfg["data"]["num_workers"] = args.workers
+    device = torch.device(args.device)
+    if device.type == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA requested but unavailable; no silent CPU fallback")
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    seed_all(cfg["seed"])
+    setup_start = time.perf_counter()
+    print(f"[OBC] {args.mode}: {cfg['model']['name']} | {device}", flush=True)
+    model = create_pretrained(cfg).eval().to(device)
+    checkpoint_sha = tensor_fingerprint(model.state_dict())
+    calibration, evaluation, data_cfg, nc, ne, output_indices, labels, split = make_refinement_loaders(model, cfg["data"])
+    check_protocol(reference, data_cfg, split, nc, ne, labels)
+    manifests = {"refinement": dataset_manifest(calibration.dataset),
+                 "final": dataset_manifest(evaluation.dataset)}
+    overlap = {x["sha256"] for x in manifests["refinement"]} & {x["sha256"] for x in manifests["final"]}
+    if overlap:
+        raise ValueError("Calibration/refinement and final sets contain duplicate image content")
+    settings = {"algorithm": ALGORITHM_VERSION, "upstream_revision": UPSTREAM_REVISION,
+                "damping": args.damping, "row_batch": args.row_batch,
+                "positions_per_example": args.positions_per_example, "score_rows": args.score_rows,
+                "quantizer": "SQuaRE symmetric per-output-channel minmax W / per-layer maxabs A",
+                "conv_layout": "flattened input dimension (C,Kh,Kw)",
+                "normalization_correction": False, "hessian": "full sampled-input Gram with relative damping"}
+    identity = {"reference_sha256": hashlib.sha256(reference_bytes).hexdigest(),
+                "checkpoint_sha256": checkpoint_sha, "source_sha256": source_fingerprint(),
+                "dataset_sha256": {k: digest(v) for k, v in manifests.items()},
+                "settings": settings, "model": cfg["model"]["name"],
+                "selection": cfg["selection"], "data_config": data_cfg,
+                "seed": cfg["seed"], "environment": environment(),
+                "device": str(device), "batch_size": cfg["data"]["batch_size"],
+                "grid": layerwise_configurations(cfg)}
+    fingerprint = digest(identity)
+    manifest_path = directory / "manifest.json"
+    existing = json.loads(manifest_path.read_text()) if manifest_path.exists() else None
+    if existing and existing["fingerprint"] != fingerprint:
+        raise ValueError("Cache identity changed (code/data/checkpoint/settings/environment). Use a new output directory.")
+    if existing and not args.resume:
+        raise ValueError("Output exists; use --resume or a fresh directory")
+    existing_search = directory / "search.json"
+    if existing_search.exists():
+        prior_search = json.loads(existing_search.read_text())
+        if prior_search["settings"] != {"max_evaluations": args.max_evaluations, "budgets": args.budgets}:
+            raise ValueError("Search settings changed; use a fresh directory")
+    metadata = {"fingerprint": fingerprint, "identity": identity,
+                "reference_file": str(reference_path.resolve()), "model": cfg["model"],
+                "protocol": {"split": split, "refinement_samples": nc, "final_samples": ne},
+                "adaptations": ["expanded 16-point grid", "signed symmetric quantizer and shared activation calibration",
+                                "SQuaRE convolution grouping", "bounded reconstruction scoring",
+                                "DP uses SQuaRE proxy; fixed resource grid with refinement accuracy selection",
+                                "no BN tuning/statistics correction"],
+                "limitations": ["Reference lacks original checkpoint/content hashes; agreement is checked via metadata and dense accuracy.",
+                                "SQuaRE legacy layerwise selection used final images; historical comparison is not an untouched-test study.",
+                                "Energy is an unweighted selected-layer proxy, not measured hardware energy."],
+                "created_at": existing["created_at"] if existing else now()}
+    _atomic_json(manifest_path, metadata)
+    _atomic_json(directory / "data_manifest.json", manifests)
+    checks_path = directory / "dense_checks.json"
+    if args.resume and checks_path.exists():
+        checks = json.loads(checks_path.read_text())
+        if checks["fingerprint"] != fingerprint:
+            raise ValueError("Dense checks cache mismatch")
+        dense, dense_refinement = checks["dense_final"], checks["dense_refinement"]
+    else:
+        dense = evaluate(model, evaluation, device, None, output_indices)
+        dense_refinement = evaluate(model, calibration, device, None, output_indices)
+        check_accuracy(dense, reference["dense_baseline"], args.baseline_tolerance)
+        check_accuracy(dense_refinement, reference["refinement_set"]["dense_accuracy"], args.baseline_tolerance)
+        _atomic_json(checks_path, {"fingerprint": fingerprint, "dense_final": dense,
+                                  "dense_refinement": dense_refinement})
+    check_accuracy(dense, reference["dense_baseline"], args.baseline_tolerance)
+    check_accuracy(dense_refinement, reference["refinement_set"]["dense_accuracy"], args.baseline_tolerance)
+    modules = instrument(model, cfg, 32, 32)
+    expected = list(reference.get("pareto_frontiers", {}))
+    if list(modules) != expected:
+        raise ValueError("Selected layer names/order differ from reference")
+    if len(modules) != reference["selected_layer_count"]:
+        raise ValueError("Selected layer count differs from reference")
+    ranges_path = directory / "activation_ranges.pt"
+    if args.resume and ranges_path.exists():
+        ranges = load_tensors(ranges_path)
+        for name, module in modules.items():
+            module.act_amax.copy_(ranges[name])
+    else:
+        calibrate(model, modules, calibration, device, "range")
+        ranges = {name: module.act_amax.detach().cpu() for name, module in modules.items()}
+        atomic_torch(ranges_path, ranges)
+    for module in modules.values():
+        module.finalize()
+    metadata["layer_shapes"] = {name: list(m.weight.shape) for name, m in modules.items()}
+    # Record setup only once; later resumes are overhead, not fresh preparation.
+    metadata["first_setup_seconds"] = existing.get("first_setup_seconds", time.perf_counter() - setup_start) if existing else time.perf_counter() - setup_start
+    _atomic_json(manifest_path, metadata)
+    specs = identity["grid"]
+    layer_names = representative_layers(modules) if args.mode == "profile" else list(modules)
+    pilot_path = directory / "pilot.json"
+    pilot = json.loads(pilot_path.read_text()) if args.resume and pilot_path.exists() else {
+        "suite": "obc_pilot", "fingerprint": fingerprint, "model": cfg["model"],
+        "environment": environment(), "layers": [], "settings": settings,
+        "warning": "Row-sampled timing estimates are preliminary; no paper accuracy results."}
+    pilot_settings = {"rows": args.pilot_rows, "layer_seconds": args.pilot_layer_seconds}
+    if args.mode == "profile" and pilot.get("pilot_settings", pilot_settings) != pilot_settings:
+        raise ValueError("Pilot sampling/time limits changed; use a fresh output directory")
+    pilot["pilot_settings"] = pilot_settings
+    operation_deadline = invocation_start + args.max_hours * 3600 if args.max_hours else None
+    attempts_path = directory / "preparation_attempts.json"
+    attempts = json.loads(attempts_path.read_text()) if attempts_path.exists() else []
+    for name in layer_names:
+        index = list(modules).index(name)
+        module = modules[name]
+        layer_dir = directory / "cache" / f"layer_{index:03d}"
+        stats_path = layer_dir / "statistics.pt"
+        if args.mode == "run" and all((layer_dir / f"{s['id']}.pt").exists() for s in specs):
+            print(f"[OBC] cached {name}", flush=True)
+            continue
+        if args.mode == "profile" and any(row["layer"] == name for row in pilot["layers"]):
+            continue
+        if operation_deadline and time.monotonic() >= operation_deadline:
+            _atomic_json(directory / "status.json", {"status": "preparation_time_cap", "next_layer": name,
+                                                     "message": "Resume to continue; no partial result is a completed comparison."})
+            return
+        print(f"[OBC] statistics/candidates {name} {list(module.weight.shape)}", flush=True)
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
+        if stats_path.exists():
+            stats = load_tensors(stats_path)
+            stats["gram"] = stats["gram"].to(device)
+        else:
+            start = time.perf_counter()
+            try:
+                stats = collect_statistics(model, module, calibration, device, args.positions_per_example,
+                                           args.score_rows, operation_deadline)
+            except CompressionTimeout:
+                attempts.append({"layer": name, "mode": args.mode, "status": "statistics_time_cap",
+                                 "seconds": time.perf_counter() - start, "full_output_rows": True,
+                                 "completed_at": now()})
+                _atomic_json(attempts_path, attempts)
+                _atomic_json(directory / "status.json", {"status": "statistics_time_cap", "next_layer": name})
+                return
+            atomic_torch(stats_path, {**stats, "gram": stats["gram"].cpu()})
+        completed = {}
+        for spec in specs:
+            path = layer_dir / f"{spec['id']}.pt"
+            if path.exists():
+                completed[spec["id"]] = load_tensors(path)
+        weight = module.weight.detach()
+        pilot_rows = min(args.pilot_rows, len(weight)) if args.mode == "profile" else len(weight)
+        pilot_is_full_layer = pilot_rows == len(weight)
+        if not pilot_is_full_layer:
+            row_indices = torch.linspace(0, len(weight) - 1, pilot_rows, device=device).long()
+            weight = weight[row_indices]
+            completed = {}  # Partial rows must never masquerade as full-layer cache.
+        deadline = time.monotonic() + args.pilot_layer_seconds if args.mode == "profile" else operation_deadline
+        recorded = []
+        def save_candidate(key, entry):
+            recorded.append({k: v for k, v in entry.items() if k not in ("weight", "mask", "scale")})
+            if args.mode == "run" or pilot_is_full_layer:
+                atomic_torch(layer_dir / f"{key}.pt", entry)
+        start = time.perf_counter()
+        status = "completed"
+        try:
+            bank = build_candidates(weight, stats, specs, module.act_amax, row_batch=args.row_batch,
+                                    damping=args.damping, deadline=deadline, completed=completed,
+                                    on_candidate=save_candidate)
+        except CompressionTimeout:
+            status = "time_cap"
+            bank = None
+        synchronize(device)
+        elapsed = time.perf_counter() - start
+        attempts.append({"layer": name, "mode": args.mode, "status": status,
+                         "seconds": elapsed, "full_output_rows": pilot_is_full_layer,
+                         "completed_at": now()})
+        _atomic_json(attempts_path, attempts)
+        if args.mode == "profile":
+            sample_seconds = sum(r["seconds"] for r in recorded)
+            pilot["layers"].append({"layer": name, "shape": list(module.weight.shape),
+                "sampled_output_rows": pilot_rows, "total_output_rows": len(module.weight),
+                "status": status, "statistics_seconds": stats["seconds"],
+                "statistics_input_rows": stats["input_rows"], "scoring_rows": stats["score_rows"],
+                "candidate_seconds": elapsed, "completed_candidates": recorded,
+                "full_bank_seconds_linear_estimate": sample_seconds * len(module.weight) / pilot_rows if bank is not None else None,
+                "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(device) if device.type == "cuda" else None,
+                "sampled_candidates_reusable": pilot_is_full_layer})
+            _atomic_json(pilot_path, pilot)
+        elif status != "completed":
+            _atomic_json(directory / "status.json", {"status": "preparation_time_cap", "next_layer": name})
+            return
+        del stats, completed, bank
+    if args.mode == "profile":
+        pilot["dense_final_evaluation_seconds"] = dense["seconds"]
+        pilot["dense_refinement_evaluation_seconds"] = dense_refinement["seconds"]
+        pilot["completed_at"] = now()
+        _atomic_json(pilot_path, pilot)
+        print(f"[OBC] Pilot saved: {pilot_path}", flush=True)
+        return pilot
+
+    def load_candidate(name, key):
+        idx = list(modules).index(name)
+        return load_tensors(directory / "cache" / f"layer_{idx:03d}" / f"{key}.pt")
+    candidates = {}
+    preparation_seconds = metadata["first_setup_seconds"] + sum(a["seconds"] for a in attempts if a["mode"] == "run" or a["full_output_rows"])
+    for name in modules:
+        idx = list(modules).index(name)
+        stats = load_tensors(directory / "cache" / f"layer_{idx:03d}" / "statistics.pt")
+        preparation_seconds += stats["seconds"]
+        del stats
+        candidates[name] = []
+        for spec in specs:
+            entry = load_candidate(name, spec["id"])
+            candidates[name].append({k: v for k, v in entry.items() if k not in ("weight", "mask", "scale")})
+    search_settings = {"max_evaluations": args.max_evaluations, "budgets": args.budgets}
+    search_path = directory / "search.json"
+    search = json.loads(search_path.read_text()) if search_path.exists() else {
+        "fingerprint": fingerprint, "settings": search_settings, "probes": [], "allocation_seconds": 0.0}
+    if search["settings"] != search_settings or search["fingerprint"] != fingerprint:
+        raise ValueError("Search settings changed; use a fresh directory")
+    start = time.perf_counter()
+    proposals = proposed_assignments(candidates, args.max_evaluations)
+    if not search["probes"]:
+        search["allocation_seconds"] = time.perf_counter() - start
+    for assignment in proposals:
+        key = digest(assignment)
+        if any(p["key"] == key for p in search["probes"]):
+            continue
+        if operation_deadline and time.monotonic() >= operation_deadline:
+            _atomic_json(directory / "status.json", {"status": "search_time_cap", "message": "Resume before final evaluation"})
+            _atomic_json(search_path, search)
+            return
+        start = time.perf_counter()
+        apply_assignment(modules, assignment, load_candidate, ranges)
+        accuracy = evaluate(model, calibration, device, None, output_indices)
+        energy = sum(next(c["normalized_energy"] for c in candidates[n] if c["configuration"] == k)
+                     for n, k in assignment.items()) / len(modules)
+        search["probes"].append({"key": key, "assignment": assignment, "accuracy": accuracy,
+                                  "normalized_energy": energy, "seconds": time.perf_counter() - start})
+        _atomic_json(search_path, search)
+    # All choices are locked before the first compressed final-set evaluation.
+    winners = {str(b): best_feasible(search["probes"], b, dense_refinement["top1"]) for b in args.budgets}
+    selection_path = directory / "frozen_selection.json"
+    _atomic_json(selection_path, {"fingerprint": fingerprint, "winners": winners,
+                                  "selection_uses_final_labels": False})
+    result_path = directory / "results.json"
+    results = json.loads(result_path.read_text()) if result_path.exists() else {
+        "suite": "obc_comparison", "method": "OBC (matched ExactOBS + bounded DP, adapted)",
+        "fingerprint": fingerprint, "reference_sha256": identity["reference_sha256"],
+        "model": cfg["model"], "environment": environment(), "protocol": metadata["protocol"],
+        "dense_baseline": dense, "dense_refinement": dense_refinement,
+        "preparation_seconds": preparation_seconds,
+        "pilot_candidate_seconds_excluded": sum(a["seconds"] for a in attempts if a["mode"] == "profile" and not a["full_output_rows"]),
+        "search_seconds": search["allocation_seconds"] + sum(p["seconds"] for p in search["probes"]),
+        "search_evaluations": len(search["probes"]), "experiments": [],
+        "adaptations": metadata["adaptations"], "limitations": metadata["limitations"]}
+    for budget in args.budgets:
+        if any(e["budget_pp"] == budget for e in results["experiments"]):
+            continue
+        winner = winners[str(budget)]
+        old = next((e for e in results["experiments"] if e["assignment_key"] == winner["key"]), None)
+        apply_assignment(modules, winner["assignment"], load_candidate, ranges)
+        accuracy = deepcopy(old["accuracy"]) if old else evaluate(model, evaluation, device, None, output_indices)
+        selected_layers = []
+        for name, key in winner["assignment"].items():
+            candidate = next(c for c in candidates[name] if c["configuration"] == key)
+            selected_layers.append({"target_layer": name, "shape": list(modules[name].weight.shape),
+                                     "num_weights": modules[name].weight.numel(), **candidate})
+        drop = dense["top1"] - accuracy["top1"]
+        experiment = {"budget_pp": budget, "assignment_key": winner["key"], "accuracy": accuracy,
+                      "final_evaluation_reused": old is not None,
+                      "accuracy_drop_top1_pp": drop,
+                      "refinement_drop_top1_pp": dense_refinement["top1"] - winner["accuracy"]["top1"],
+                      "refinement_feasible": True, "final_feasible": drop <= budget + 1e-9,
+                      "normalized_energy": winner["normalized_energy"], "selected_layers": selected_layers}
+        # Durable final selected weights, masks and activation ranges for replay.
+        checkpoint = {"fingerprint": fingerprint, "assignment": winner["assignment"],
+                      "layers": {name: load_candidate(name, key) for name, key in winner["assignment"].items()},
+                      "activation_ranges": ranges}
+        atomic_torch(directory / "selected" / f"budget_{budget:g}.pt", checkpoint)
+        results["experiments"].append(experiment)
+        _atomic_json(result_path, results)
+    results["completed_at"] = now()
+    _atomic_json(result_path, results)
+    _atomic_json(directory / "status.json", {"status": "completed"})
+    print(f"[OBC] Results saved: {result_path}", flush=True)
+    return results
+
+
+def parser():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("mode", choices=["profile", "run"])
+    p.add_argument("--config", required=True)
+    p.add_argument("--reference", required=True, help="Completed SQuaRE global_refinement JSON")
+    p.add_argument("--output-dir", required=True)
+    p.add_argument("--data-root", help="Directory containing both ImageNetV2 variants")
+    p.add_argument("--device", default="cuda")
+    p.add_argument("--batch-size", type=int)
+    p.add_argument("--workers", type=int)
+    p.add_argument("--resume", action="store_true")
+    p.add_argument("--row-batch", type=int, default=1)
+    p.add_argument("--damping", type=float, default=0.01)
+    p.add_argument("--positions-per-example", type=int, default=32, help="0 uses every token/spatial position")
+    p.add_argument("--score-rows", type=int, default=2048)
+    p.add_argument("--pilot-rows", type=int, default=2)
+    p.add_argument("--pilot-layer-seconds", type=float, default=120)
+    p.add_argument("--max-evaluations", type=int, default=32)
+    p.add_argument("--max-hours", type=float, help="Required for run; per invocation, covers preparation/search (final evaluations complete afterward)")
+    p.add_argument("--budgets", nargs="+", type=float, default=[0.1, 0.5, 1.0])
+    p.add_argument("--baseline-tolerance", type=float, default=0.02)
+    return p
+
+
+def main():
+    import math
+    p = parser()
+    args = p.parse_args()
+    if args.mode == "run" and (args.max_hours is None or args.max_hours <= 0):
+        p.error("run requires an explicitly agreed positive --max-hours; run profile first")
+    numbers = [args.damping, args.baseline_tolerance, args.pilot_layer_seconds, *args.budgets]
+    if args.max_hours is not None:
+        numbers.append(args.max_hours)
+    if not all(math.isfinite(n) for n in numbers) or args.damping <= 0 or args.baseline_tolerance < 0:
+        p.error("Require finite positive damping and nonnegative baseline tolerance")
+    if args.batch_size is not None and args.batch_size < 1 or args.workers is not None and args.workers < 0:
+        p.error("Invalid data-loader settings")
+    if min(args.row_batch, args.score_rows, args.pilot_rows, args.pilot_layer_seconds) <= 0 or args.positions_per_example < 0:
+        p.error("Invalid sampling/batching limits")
+    if args.max_evaluations < 2 or not args.budgets or any(b < 0 for b in args.budgets) or len(set(args.budgets)) != len(args.budgets):
+        p.error("Require >=2 evaluations and distinct nonnegative accuracy budgets")
+    run(args)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,10 @@
 # Public Pretrained Quantization–Sparsity Isolation Framework
 
+Version 0.8.0 adds a profile-first, matched-setting OBC/ExactOBS baseline.
+See [OBC comparison and server instructions](docs/OBC_COMPARISON.md).
+The new server scripts run from their own source directory without replacing
+the environment or code used by an ongoing SQuaRE experiment.
+
 This project evaluates famous pretrained vision models without training or fine-tuning.
 It uses the freely downloadable **ImageNetV2 MatchedFrequency** benchmark and checks the
 dense result against `timm`'s published result before running compression experiments.
