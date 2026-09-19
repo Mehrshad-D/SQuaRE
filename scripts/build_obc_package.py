@@ -1,8 +1,9 @@
-"""Build the portable v0.8.0 source package without unrelated workspace files."""
+"""Build the portable source package without unrelated workspace files."""
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 import subprocess
 import zipfile
@@ -10,7 +11,8 @@ import zipfile
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    prefix = "pretrained-isolation-framework-v0.8.0"
+    version = re.search(r'^version = "([^"]+)"', (root / "pyproject.toml").read_text(), re.MULTILINE).group(1)
+    prefix = f"pretrained-isolation-framework-v{version}"
     files = [root / name for name in ("README.md", "pyproject.toml", ".gitignore", "docs/OBC_COMPARISON.md")]
     for directory, pattern in (("src", "*.py"), ("configs", "*.yaml"), ("tests", "*.py")):
         files.extend((root / directory).rglob(pattern))
@@ -22,7 +24,7 @@ def main():
     files.extend((root / "outputs-v4/imagenetv2").glob("*/*_global_refinement.json"))
     files = sorted(set(files))
     content = {str(p.relative_to(root)): p.read_bytes() for p in files}
-    manifest = {"version": "0.8.0", "source_commit": subprocess.check_output(
+    manifest = {"version": version, "source_commit": subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
         "files": {name: hashlib.sha256(data).hexdigest() for name, data in content.items()}}
     content["PACKAGE_MANIFEST.json"] = (json.dumps(manifest, indent=2) + "\n").encode()

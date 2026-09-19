@@ -46,8 +46,25 @@ def matched_config(config: dict, reference: dict) -> dict:
 
 def check_protocol(reference: dict, data_config: dict, split: dict,
                    refinement_samples: int, final_samples: int, labels: dict) -> None:
-    if data_config != reference["data"]["resolved_model_data_config"]:
-        raise ValueError("Preprocessing does not match the reference")
+    # timm returns tuples (input_size/mean/std); JSON stores these as lists.
+    # Compare the same serialized representation, without relaxing any values,
+    # removing keys, or rounding numeric fields.
+    actual_config = json.loads(json.dumps(data_config, allow_nan=False))
+    expected_config = json.loads(json.dumps(
+        reference["data"]["resolved_model_data_config"], allow_nan=False
+    ))
+    if actual_config != expected_config:
+        differences = {
+            key: {"actual": actual_config.get(key, "<missing>"),
+                  "expected": expected_config.get(key, "<missing>")}
+            for key in sorted(actual_config.keys() | expected_config.keys())
+            if key not in actual_config or key not in expected_config
+            or actual_config[key] != expected_config[key]
+        }
+        raise ValueError(
+            "Preprocessing does not match the reference: "
+            + json.dumps(differences, sort_keys=True, allow_nan=False)
+        )
     if refinement_samples != reference["refinement_set"]["samples"]:
         raise ValueError("Refinement sample count does not match")
     if final_samples != reference["dense_baseline"]["evaluated_samples"]:

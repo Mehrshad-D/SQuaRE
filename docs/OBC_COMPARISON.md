@@ -1,8 +1,24 @@
-# Matched-setting OBC baseline (v0.8.0)
+# Matched-setting OBC baseline (v0.8.1)
 
 This package adds a **profile-first** baseline for DeiT-Tiny, Swin-Tiny and
 ResNet-18, at 0.1 / 0.5 / 1.0 percentage-point accuracy-drop budgets. No new
 ImageNetV2 results are bundled: those require running on the server.
+
+Version 0.8.1 fixes the preprocessing validator: live timm tuples and their
+saved JSON lists are compared in the same JSON representation. Input size,
+normalization, interpolation, crop settings, and key presence remain strict.
+Actual differences now report the field and both values. The regression checks
+cover the real timm configurations against all three bundled v4 references.
+
+For a v0.8.0 pilot that stopped with `Preprocessing does not match the reference`
+before any dense checks or candidate caches were written, the small
+`obc-preprocessing-fix-v0.8.1.zip` can be extracted in the existing project
+directory to replace only `src/pretrained_isolation/obc/protocol.py`. This does
+not change the dataset or bypass consistency checks. The original package
+manifest will no longer describe that patched file; the complete v0.8.1 package
+has an updated manifest. If a previous run progressed far enough to create a
+cache manifest, the code fingerprint changes and a fresh OBC output directory
+is required. No cache deletion is needed for this reported startup failure.
 
 ## Method and limits of the comparison
 
@@ -96,7 +112,7 @@ accuracy budget. Fixed search settings are required on resume.
 
 Use a **new sibling directory** on the server. Do not overwrite the directory
 or editable installation used by the currently running SQuaRE experiment.
-The zip has a top-level `pretrained-isolation-framework-v0.8.0/` folder, code,
+The zip has a top-level `pretrained-isolation-framework-v0.8.1/` folder, code,
 tests, configs, documentation, and the original tracked v2/v4 reference JSONs.
 It excludes data, model checkpoints, papers, figure drafts, and OBC outputs.
 `PACKAGE_MANIFEST.json` records SHA-256 hashes for the packaged files.
@@ -104,15 +120,15 @@ It excludes data, model checkpoints, papers, figure drafts, and OBC outputs.
 On your Mac (replace the SSH destination and directory):
 
 ```bash
-scp pretrained-isolation-framework-v0.8.0.zip USER@SERVER:/YOUR/WORK/DIRECTORY/
+scp pretrained-isolation-framework-v0.8.1.zip USER@SERVER:/YOUR/WORK/DIRECTORY/
 ```
 
 On the server:
 
 ```bash
 cd /YOUR/WORK/DIRECTORY
-unzip pretrained-isolation-framework-v0.8.0.zip
-cd pretrained-isolation-framework-v0.8.0
+unzip pretrained-isolation-framework-v0.8.1.zip
+cd pretrained-isolation-framework-v0.8.1
 
 # Activate the existing working environment with torch/timm installed.
 # Use your actual activation command/path; no package upgrade is required.
@@ -132,9 +148,12 @@ the folder containing `imagenetv2-matched-frequency-format-val` and
 ```bash
 mkdir -p logs
 PYTHON=python bash scripts/profile_obc_imagenetv2.sh \
-  --data-root /PATH/TO/EXISTING/PROJECT/data/imagenetv2 \
+  --data-root /storage/users/pdarbani/Mehrshad/Transformer/v4.0/pretrained-isolation-framework/data/imagenetv2 \
   > logs/obc-pilot.log 2>&1
 ```
+
+That is the data directory recorded in the v4 run. If the data have moved,
+replace it with the actual parent directory of the two ImageNetV2 variants.
 
 For a persistent run, use `nohup env PYTHON=python bash ... > logs/obc-pilot.log
 2>&1 &`, or run inside `tmux`. Follow progress with:

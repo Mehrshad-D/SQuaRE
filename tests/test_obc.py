@@ -178,6 +178,44 @@ def test_v5_split_hash_and_dense_mismatches_rejected():
                        {"evaluated_samples": 100, "top1": 66, "top5": 90}, .02)
 
 
+def test_preprocessing_accepts_json_list_equivalent_to_live_tuple():
+    actual = {"input_size": (3, 224, 224), "mean": (.485, .456, .406),
+              "std": (.229, .224, .225), "interpolation": "bicubic",
+              "crop_pct": .9, "crop_mode": "center"}
+    reference = legacy_reference()
+    reference["data"]["resolved_model_data_config"] = json.loads(json.dumps(actual))
+    assert actual != reference["data"]["resolved_model_data_config"]
+    before = deepcopy(actual)
+    check_protocol(reference, actual, {}, 256, 10000, {})
+    assert actual == before
+
+
+@pytest.mark.parametrize("field,value", [
+    ("input_size", (3, 256, 256)), ("mean", (.5, .456, .406)),
+    ("std", (.2, .224, .225)), ("interpolation", "bilinear"),
+    ("crop_pct", .95), ("crop_mode", "squash"),
+])
+def test_preprocessing_rejects_real_value_changes_with_diagnostics(field, value):
+    expected = {"input_size": [3, 224, 224], "mean": [.485, .456, .406],
+                "std": [.229, .224, .225], "interpolation": "bicubic",
+                "crop_pct": .9, "crop_mode": "center"}
+    reference = legacy_reference()
+    reference["data"]["resolved_model_data_config"] = expected
+    actual = {**expected, field: value}
+    with pytest.raises(ValueError, match=field) as error:
+        check_protocol(reference, actual, {}, 256, 10000, {})
+    assert '"actual"' in str(error.value) and '"expected"' in str(error.value)
+
+
+@pytest.mark.parametrize("extra", [False, True])
+def test_preprocessing_rejects_missing_or_added_fields(extra):
+    reference = legacy_reference()
+    reference["data"]["resolved_model_data_config"] = {"crop_pct": .9}
+    actual = {"crop_pct": .9, "crop_mode": "center"} if extra else {}
+    with pytest.raises(ValueError, match="<missing>"):
+        check_protocol(reference, actual, {}, 256, 10000, {})
+
+
 @pytest.mark.parametrize("model,expected", [("deit_tiny", 48), ("swin_tiny", 48), ("resnet18", 19)])
 def test_real_architecture_adapters_preserve_dense_predictions(model, expected):
     timm = pytest.importorskip("timm")
@@ -188,6 +226,13 @@ def test_real_architecture_adapters_preserve_dense_predictions(model, expected):
     torch.set_num_threads(1)
     try:
         net = timm.create_model(cfg["model"]["name"], pretrained=False).eval()
+        # Exercise the real timm -> saved-JSON protocol boundary. The original
+        # toy workflow's empty data config did not cover tuple/list serialization.
+        actual_config = timm.data.resolve_model_data_config(net)
+        path = ROOT / f"outputs-v4/imagenetv2/{model}/{model}_imagenetv2_global_refinement.json"
+        reference = json.loads(path.read_text())
+        check_protocol(reference, actual_config, {}, reference["refinement_set"]["samples"],
+                       reference["dense_baseline"]["evaluated_samples"], reference["data"]["label_space"])
         images = torch.randn(1, 3, 224, 224)
         with torch.inference_mode():
             original = net(images)
