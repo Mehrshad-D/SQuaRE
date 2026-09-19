@@ -17,7 +17,7 @@ def main():
     for directory, pattern in (("src", "*.py"), ("configs", "*.yaml"), ("tests", "*.py")):
         files.extend((root / directory).rglob(pattern))
     scripts = ["build_obc_package.py", "profile_obc_imagenetv2.sh", "run_obc_imagenetv2.sh",
-               "compare_obc_imagenetv2.sh", "run_full_imagenetv2.sh", "run_layerwise_imagenetv2.sh",
+               "compare_obc_imagenetv2.sh", "run_obc_v4_15h.sh", "run_full_imagenetv2.sh", "run_layerwise_imagenetv2.sh",
                "run_joint_thresholds_imagenetv2.sh", "run_global_refinement_imagenetv2.sh"]
     files.extend(root / "scripts" / name for name in scripts)
     files.extend((root / "outputs-v2/imagenetv2").glob("*/*_layerwise.json"))

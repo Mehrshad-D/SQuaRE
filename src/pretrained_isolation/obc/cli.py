@@ -14,10 +14,11 @@ import torch
 
 from ..config import load_config, layerwise_configurations
 from ..data import make_refinement_loaders
-from ..engine import calibrate, environment, evaluate, instrument, seed_all
+from ..engine import calibrate, environment, instrument, seed_all
 from ..runner import _atomic_json, create_pretrained
-from . import ALGORITHM_VERSION, UPSTREAM_REVISION
+from . import ALGORITHM_VERSION, UPSTREAM_REVISION, method_label
 from .core import CompressionTimeout, allocate_dp
+from .evaluation import evaluate, file_sha256
 from .numerics import configure_execution
 from .protocol import (check_accuracy, check_protocol, dataset_manifest, digest,
                        matched_config, source_fingerprint, tensor_fingerprint)
@@ -40,7 +41,7 @@ def exclusive_output(directory: Path):
         except BlockingIOError as error:
             raise RuntimeError(f"Another OBC process owns {directory}") from error
         try:
-            yield
+            yield stream.fileno()
         finally:
             fcntl.flock(stream, fcntl.LOCK_UN)
 
@@ -51,12 +52,12 @@ def representative_layers(modules):
     return list(dict.fromkeys([ordered[0], ordered[len(ordered) // 2], ordered[-1]]))
 
 
-def proposed_assignments(candidates, max_evaluations):
+def proposed_assignments(candidates, max_evaluations, deadline=None):
     """A fixed grid with dense anchor; no false monotonicity assumption or test feedback."""
     names = list(candidates)
     dense = {n: next(c["configuration"] for c in candidates[n]
                      if c["configuration"] == "FP32__dense") for n in names}
-    proposals = [dense]
+    yield dense
     seen = {tuple(dense.values())}
     minimum = sum(min(c["normalized_energy"] for c in candidates[n]) for n in names)
     maximum = float(len(names))
@@ -64,13 +65,12 @@ def proposed_assignments(candidates, max_evaluations):
     for i in range(max_evaluations - 1):
         fraction = i / max(1, max_evaluations - 2)
         cap = minimum + (maximum - minimum) * fraction ** 2
-        indices = allocate_dp([candidates[n] for n in names], cap)
+        indices = allocate_dp([candidates[n] for n in names], cap, deadline=deadline)
         assignment = {n: candidates[n][idx]["configuration"] for n, idx in zip(names, indices)}
         key = tuple(assignment.values())
         if key not in seen:
-            proposals.append(assignment)
+            yield assignment
             seen.add(key)
-    return proposals
 
 
 def best_feasible(probes, threshold, dense_top1):
@@ -115,6 +115,9 @@ def run(args):
 
 def _run(args, directory):
     invocation_start = time.monotonic()
+    final_deadline = invocation_start + args.max_hours * 3600 if args.max_hours else None
+    search_deadline = final_deadline - args.final_reserve_seconds if final_deadline else None
+    operation_deadline = search_deadline - args.search_reserve_seconds if search_deadline else None
     reference_path = Path(args.reference)
     reference_bytes = reference_path.read_bytes()
     reference = json.loads(reference_bytes)
@@ -132,6 +135,10 @@ def _run(args, directory):
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA requested but unavailable; no silent CPU fallback")
     execution = configure_execution(args.numerics)
+    for key in ("torch", "timm"):
+        expected_version = reference.get("environment", {}).get(key)
+        if expected_version and expected_version != environment().get(key):
+            raise ValueError(f"Reference {key}={expected_version}, current={environment().get(key)}; use the original server environment")
     seed_all(cfg["seed"])
     setup_start = time.perf_counter()
     print(f"[OBC] {args.mode}: {cfg['model']['name']} | {device}", flush=True)
@@ -151,7 +158,11 @@ def _run(args, directory):
                 "positions_per_example": args.positions_per_example, "score_rows": args.score_rows,
                 "quantizer": "SQuaRE symmetric per-output-channel minmax W / per-layer maxabs A",
                 "conv_layout": "flattened input dimension (C,Kh,Kw)",
-                "normalization_correction": False, "hessian": "full sampled-input Gram with relative damping",
+                "normalization_correction": False,
+                "hessian": "block-diagonal sampled-input Gram" if args.hessian_block_size else "full sampled-input Gram with relative damping",
+                "hessian_block_size": args.hessian_block_size,
+                "hessian_dtype": "float64", "damping_scope": "full-layer mean input energy",
+                "quantization_scale_scope": "full output channel, not per block",
                 "execution_settings": execution}
     identity = {"reference_sha256": hashlib.sha256(reference_bytes).hexdigest(),
                 "checkpoint_sha256": checkpoint_sha, "source_sha256": source_fingerprint(),
@@ -174,6 +185,7 @@ def _run(args, directory):
         if prior_search["settings"] != {"max_evaluations": args.max_evaluations, "budgets": args.budgets}:
             raise ValueError("Search settings changed; use a fresh directory")
     metadata = {"fingerprint": fingerprint, "identity": identity,
+                "method": method_label(args.hessian_block_size),
                 "reference_file": str(reference_path.resolve()), "model": cfg["model"],
                 "protocol": {"split": split, "refinement_samples": nc, "final_samples": ne},
                 "adaptations": ["expanded 16-point grid", "signed symmetric quantizer and shared activation calibration",
@@ -184,8 +196,17 @@ def _run(args, directory):
                                 "SQuaRE legacy layerwise selection used final images; historical comparison is not an untouched-test study.",
                                 "Energy is an unweighted selected-layer proxy, not measured hardware energy."],
                 "created_at": existing["created_at"] if existing else now()}
+    if args.hessian_block_size:
+        metadata["adaptations"].append(f"Block-diagonal Hessian, contiguous blocks <= {args.hessian_block_size}; no cross-block compensation")
+        metadata["limitations"].append("Blockwise OBS is an OBC-inspired approximation, not a reproduction of full-Hessian published OBC.")
     _atomic_json(manifest_path, metadata)
     _atomic_json(directory / "data_manifest.json", manifests)
+    base_path = directory / "base_model.pt"
+    if base_path.exists():
+        if tensor_fingerprint(load_tensors(base_path)) != checkpoint_sha:
+            raise ValueError("Saved base checkpoint does not match verified pretrained model")
+    else:
+        atomic_torch(base_path, {k: v.detach().cpu() for k, v in model.state_dict().items()})
     checks_path = directory / "dense_checks.json"
     if args.resume and checks_path.exists():
         checks = json.loads(checks_path.read_text())
@@ -193,17 +214,32 @@ def _run(args, directory):
             raise ValueError("Dense checks cache mismatch")
         dense, dense_refinement = checks["dense_final"], checks["dense_refinement"]
     else:
-        dense = evaluate(model, evaluation, device, None, output_indices)
-        dense_refinement = evaluate(model, calibration, device, None, output_indices)
+        dense = evaluate(model, evaluation, device, None, output_indices,
+                         prediction_path=directory / "predictions/dense_final.pt", deadline=final_deadline)
+        dense_refinement = evaluate(model, calibration, device, None, output_indices,
+                                    prediction_path=directory / "predictions/dense_refinement.pt", deadline=final_deadline)
     checks = save_dense_checks(checks_path, fingerprint, dense, dense_refinement, reference,
                                args.baseline_tolerance, execution)
+    finished_path = directory / "results.json"
+    if args.mode == "run" and finished_path.exists():
+        finished = json.loads(finished_path.read_text())
+        if finished.get("completed_at"):
+            from .audit import verify_run
+            verify_run(directory)
+            return finished
     modules = instrument(model, cfg, 32, 32)
     expected = list(reference.get("pareto_frontiers", {}))
     if list(modules) != expected:
         raise ValueError("Selected layer names/order differ from reference")
     if len(modules) != reference["selected_layer_count"]:
         raise ValueError("Selected layer count differs from reference")
+    def record_setup():
+        path = directory / "setup_attempts.json"
+        attempts = json.loads(path.read_text()) if path.exists() else []
+        attempts.append({"mode": args.mode, "seconds": time.perf_counter() - setup_start, "completed_at": now()})
+        _atomic_json(path, attempts)
     if args.mode == "baseline":
+        record_setup()
         metadata["first_setup_seconds"] = existing.get("first_setup_seconds", time.perf_counter() - setup_start) if existing else time.perf_counter() - setup_start
         _atomic_json(manifest_path, metadata)
         print(f"[OBC] Dense baseline checks passed: {checks_path}", flush=True)
@@ -223,6 +259,7 @@ def _run(args, directory):
     # Record setup only once; later resumes are overhead, not fresh preparation.
     metadata["first_setup_seconds"] = existing.get("first_setup_seconds", time.perf_counter() - setup_start) if existing else time.perf_counter() - setup_start
     _atomic_json(manifest_path, metadata)
+    record_setup()
     specs = identity["grid"]
     layer_names = representative_layers(modules) if args.mode == "profile" else list(modules)
     pilot_path = directory / "pilot.json"
@@ -234,7 +271,6 @@ def _run(args, directory):
     if args.mode == "profile" and pilot.get("pilot_settings", pilot_settings) != pilot_settings:
         raise ValueError("Pilot sampling/time limits changed; use a fresh output directory")
     pilot["pilot_settings"] = pilot_settings
-    operation_deadline = invocation_start + args.max_hours * 3600 if args.max_hours else None
     attempts_path = directory / "preparation_attempts.json"
     attempts = json.loads(attempts_path.read_text()) if attempts_path.exists() else []
     for name in layer_names:
@@ -293,7 +329,7 @@ def _run(args, directory):
         try:
             bank = build_candidates(weight, stats, specs, module.act_amax, row_batch=args.row_batch,
                                     damping=args.damping, deadline=deadline, completed=completed,
-                                    on_candidate=save_candidate)
+                                    on_candidate=save_candidate, block_size=args.hessian_block_size)
         except CompressionTimeout:
             status = "time_cap"
             bank = None
@@ -330,7 +366,7 @@ def _run(args, directory):
         idx = list(modules).index(name)
         return load_tensors(directory / "cache" / f"layer_{idx:03d}" / f"{key}.pt")
     candidates = {}
-    preparation_seconds = metadata["first_setup_seconds"] + sum(a["seconds"] for a in attempts if a["mode"] == "run" or a["full_output_rows"])
+    preparation_seconds = sum(a["seconds"] for a in json.loads((directory / "setup_attempts.json").read_text())) + sum(a["seconds"] for a in attempts if a["mode"] == "run" or a["full_output_rows"])
     for name in modules:
         idx = list(modules).index(name)
         stats = load_tensors(directory / "cache" / f"layer_{idx:03d}" / "statistics.pt")
@@ -346,50 +382,89 @@ def _run(args, directory):
         "fingerprint": fingerprint, "settings": search_settings, "probes": [], "allocation_seconds": 0.0}
     if search["settings"] != search_settings or search["fingerprint"] != fingerprint:
         raise ValueError("Search settings changed; use a fresh directory")
-    start = time.perf_counter()
-    proposals = proposed_assignments(candidates, args.max_evaluations)
-    if not search["probes"]:
-        search["allocation_seconds"] = time.perf_counter() - start
-    for assignment in proposals:
-        key = digest(assignment)
-        if any(p["key"] == key for p in search["probes"]):
-            continue
-        if operation_deadline and time.monotonic() >= operation_deadline:
-            _atomic_json(directory / "status.json", {"status": "search_time_cap", "message": "Resume before final evaluation"})
-            _atomic_json(search_path, search)
-            return
-        start = time.perf_counter()
-        apply_assignment(modules, assignment, load_candidate, ranges)
-        accuracy = evaluate(model, calibration, device, None, output_indices)
-        energy = sum(next(c["normalized_energy"] for c in candidates[n] if c["configuration"] == k)
-                     for n, k in assignment.items()) / len(modules)
-        search["probes"].append({"key": key, "assignment": assignment, "accuracy": accuracy,
-                                  "normalized_energy": energy, "seconds": time.perf_counter() - start})
-        _atomic_json(search_path, search)
-    # All choices are locked before the first compressed final-set evaluation.
-    winners = {str(b): best_feasible(search["probes"], b, dense_refinement["top1"]) for b in args.budgets}
     selection_path = directory / "frozen_selection.json"
-    _atomic_json(selection_path, {"fingerprint": fingerprint, "winners": winners,
-                                  "selection_uses_final_labels": False})
+    if selection_path.exists():
+        frozen = json.loads(selection_path.read_text())
+        if frozen["fingerprint"] != fingerprint or frozen["search_settings"] != search_settings:
+            raise ValueError("Frozen selection identity/settings mismatch")
+        winners = frozen["winners"]
+        expected_winners = {str(b): best_feasible(search["probes"], b, dense_refinement["top1"]) for b in args.budgets}
+        if winners != expected_winners:
+            raise ValueError("Search cache differs from irrevocably frozen selection")
+        # Crucial on resume: never generate/evaluate new proposals after any
+        # compressed final-set evaluation could have occurred.
+    else:
+        proposals = iter(proposed_assignments(candidates, args.max_evaluations, search_deadline))
+        finished_grid = False
+        while True:
+            started_allocation = time.perf_counter()
+            try:
+                assignment = next(proposals)
+            except StopIteration:
+                finished_grid = True
+                break
+            except CompressionTimeout:
+                search["allocation_seconds"] += time.perf_counter() - started_allocation
+                break
+            search["allocation_seconds"] += time.perf_counter() - started_allocation
+            key = digest(assignment)
+            if any(p["key"] == key for p in search["probes"]):
+                continue
+            if search_deadline and time.monotonic() >= search_deadline:
+                break
+            start = time.perf_counter()
+            apply_assignment(modules, assignment, load_candidate, ranges)
+            try:
+                accuracy = evaluate(model, calibration, device, None, output_indices,
+                    prediction_path=directory / "predictions" / f"refinement_{key}.pt", deadline=search_deadline)
+            except CompressionTimeout:
+                search["incomplete_evaluation_seconds"] = search.get("incomplete_evaluation_seconds", 0.) + time.perf_counter() - start
+                break
+            energy = sum(next(c["normalized_energy"] for c in candidates[n] if c["configuration"] == k)
+                         for n, k in assignment.items()) / len(modules)
+            search["probes"].append({"key": key, "assignment": assignment, "accuracy": accuracy,
+                                    "normalized_energy": energy, "seconds": time.perf_counter() - start})
+            _atomic_json(search_path, search)
+            print(f"[OBC] search {len(search['probes'])}/{args.max_evaluations}: top1={accuracy['top1']:.5f}, proxy={energy:.6f}", flush=True)
+        search["finished_resource_grid"] = finished_grid
+        _atomic_json(search_path, search)
+        if not search["probes"]:
+            _atomic_json(directory / "status.json", {"status": "search_time_cap", "message": "No completed dense anchor; no comparison emitted"})
+            return
+        winners = {str(b): best_feasible(search["probes"], b, dense_refinement["top1"]) for b in args.budgets}
+        frozen = {"fingerprint": fingerprint, "winners": winners, "search_settings": search_settings,
+                  "selection_uses_final_labels": False, "frozen_at": now(),
+                  "finished_resource_grid": finished_grid}
+        _atomic_json(selection_path, frozen)
     result_path = directory / "results.json"
     results = json.loads(result_path.read_text()) if result_path.exists() else {
-        "suite": "obc_comparison", "method": "OBC (matched ExactOBS + bounded DP, adapted)",
+        "suite": "obc_comparison", "method": method_label(args.hessian_block_size),
+        "artifact_schema": 2, "algorithm_settings": settings, "frozen_selection_sha256": digest(frozen),
         "fingerprint": fingerprint, "reference_sha256": identity["reference_sha256"],
         "model": cfg["model"], "environment": environment(), "protocol": metadata["protocol"],
         "execution_settings": execution,
         "dense_baseline": dense, "dense_refinement": dense_refinement,
         "preparation_seconds": preparation_seconds,
         "pilot_candidate_seconds_excluded": sum(a["seconds"] for a in attempts if a["mode"] == "profile" and not a["full_output_rows"]),
-        "search_seconds": search["allocation_seconds"] + sum(p["seconds"] for p in search["probes"]),
+        "search_seconds": search["allocation_seconds"] + sum(p["seconds"] for p in search["probes"]) + search.get("incomplete_evaluation_seconds", 0.),
+        "search_finished_resource_grid": search["finished_resource_grid"],
         "search_evaluations": len(search["probes"]), "experiments": [],
         "adaptations": metadata["adaptations"], "limitations": metadata["limitations"]}
+    if results["fingerprint"] != fingerprint or results["frozen_selection_sha256"] != digest(frozen):
+        raise ValueError("Result identity/frozen selection changed")
+    results["preparation_seconds"] = preparation_seconds
     for budget in args.budgets:
         if any(e["budget_pp"] == budget for e in results["experiments"]):
             continue
         winner = winners[str(budget)]
         old = next((e for e in results["experiments"] if e["assignment_key"] == winner["key"]), None)
         apply_assignment(modules, winner["assignment"], load_candidate, ranges)
-        accuracy = deepcopy(old["accuracy"]) if old else evaluate(model, evaluation, device, None, output_indices)
+        try:
+            accuracy = deepcopy(old["accuracy"]) if old else evaluate(model, evaluation, device, None, output_indices,
+                prediction_path=directory / "predictions" / f"final_{winner['key']}.pt", deadline=final_deadline)
+        except CompressionTimeout:
+            _atomic_json(directory / "status.json", {"status": "final_evaluation_time_cap", "message": "Frozen selections retained; resume only missing final evaluations"})
+            return
         selected_layers = []
         for name, key in winner["assignment"].items():
             candidate = next(c for c in candidates[name] if c["configuration"] == key)
@@ -406,12 +481,17 @@ def _run(args, directory):
         checkpoint = {"fingerprint": fingerprint, "assignment": winner["assignment"],
                       "layers": {name: load_candidate(name, key) for name, key in winner["assignment"].items()},
                       "activation_ranges": ranges}
-        atomic_torch(directory / "selected" / f"budget_{budget:g}.pt", checkpoint)
+        checkpoint_path = directory / "selected" / f"budget_{budget:g}.pt"
+        atomic_torch(checkpoint_path, checkpoint)
+        experiment["checkpoint_file"] = str(checkpoint_path.relative_to(directory))
+        experiment["checkpoint_sha256"] = file_sha256(checkpoint_path)
         results["experiments"].append(experiment)
         _atomic_json(result_path, results)
     results["completed_at"] = now()
     _atomic_json(result_path, results)
-    _atomic_json(directory / "status.json", {"status": "completed"})
+    from .audit import verify_run
+    verify_run(directory)
+    _atomic_json(directory / "status.json", {"status": "completed", "verification_passed": True})
     print(f"[OBC] Results saved: {result_path}", flush=True)
     return results
 
@@ -430,13 +510,17 @@ def parser():
     p.add_argument("--workers", type=int)
     p.add_argument("--resume", action="store_true")
     p.add_argument("--row-batch", type=int, default=1)
+    p.add_argument("--hessian-block-size", type=int, default=0,
+                   help="0: full ExactOBS; positive multiple of 8: explicit OBC-inspired blockwise approximation")
+    p.add_argument("--search-reserve-seconds", type=float, default=300.)
+    p.add_argument("--final-reserve-seconds", type=float, default=300.)
     p.add_argument("--damping", type=float, default=0.01)
     p.add_argument("--positions-per-example", type=int, default=32, help="0 uses every token/spatial position")
     p.add_argument("--score-rows", type=int, default=2048)
     p.add_argument("--pilot-rows", type=int, default=2)
     p.add_argument("--pilot-layer-seconds", type=float, default=120)
     p.add_argument("--max-evaluations", type=int, default=32)
-    p.add_argument("--max-hours", type=float, help="Required for run; per invocation, covers preparation/search (final evaluations complete afterward)")
+    p.add_argument("--max-hours", type=float, help="Required for run; per invocation, covers setup/preparation/search/final evaluation, cooperatively")
     p.add_argument("--budgets", nargs="+", type=float, default=[0.1, 0.5, 1.0])
     p.add_argument("--baseline-tolerance", type=float, default=0.02)
     return p
@@ -448,7 +532,7 @@ def main():
     args = p.parse_args()
     if args.mode == "run" and (args.max_hours is None or args.max_hours <= 0):
         p.error("run requires an explicitly agreed positive --max-hours; run profile first")
-    numbers = [args.damping, args.baseline_tolerance, args.pilot_layer_seconds, *args.budgets]
+    numbers = [args.damping, args.baseline_tolerance, args.pilot_layer_seconds, args.search_reserve_seconds, args.final_reserve_seconds, *args.budgets]
     if args.max_hours is not None:
         numbers.append(args.max_hours)
     if not all(math.isfinite(n) for n in numbers) or args.damping <= 0 or args.baseline_tolerance < 0:
@@ -459,6 +543,12 @@ def main():
         p.error("Invalid sampling/batching limits")
     if args.max_evaluations < 2 or not args.budgets or any(b < 0 for b in args.budgets) or len(set(args.budgets)) != len(args.budgets):
         p.error("Require >=2 evaluations and distinct nonnegative accuracy budgets")
+    if args.hessian_block_size < 0 or args.hessian_block_size % 8:
+        p.error("Hessian block size must be 0 or a positive multiple of 8")
+    if min(args.search_reserve_seconds, args.final_reserve_seconds) < 0:
+        p.error("Time reserves must be nonnegative")
+    if args.mode == "run" and args.max_hours * 3600 <= args.search_reserve_seconds + args.final_reserve_seconds:
+        p.error("Run allowance must exceed reserved search/final time")
     run(args)
 
 

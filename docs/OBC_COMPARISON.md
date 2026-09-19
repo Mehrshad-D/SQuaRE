@@ -1,358 +1,237 @@
-# Matched-setting OBC baseline (v0.8.2)
+# OBC-inspired comparison package v0.9.0
 
-This package adds a **profile-first** baseline for DeiT-Tiny, Swin-Tiny and
-ResNet-18, at 0.1 / 0.5 / 1.0 percentage-point accuracy-drop budgets. No new
-ImageNetV2 results are bundled: those require running on the server.
+This package runs the three OBC-inspired baselines against the existing
+`outputs-v4` SQuaRE results. It does not run SQuaRE and does not wait for v5.
+The ZIP includes the original v4 reference JSONs and their v2 layerwise timing
+sources. No datasets, pretrained weights or new experimental results are bundled.
 
-Version 0.8.2 corrects an inference-settings mismatch introduced by the OBC
-adapter. The legacy SQuaRE runner left the PyTorch 2.6 defaults in place:
-CUDA matrix-multiply TF32 disabled and cuDNN convolution TF32 allowed. OBC
-v0.8.0/v0.8.1 forced both off. This can change CNN dense predictions; it is a
-likely explanation for the reported ResNet-18 59.35% vs 59.38% baseline, but
-the corrected server evaluation must verify that explanation. See
-[PyTorch numerical accuracy](https://docs.pytorch.org/docs/stable/notes/numerical_accuracy.html).
+The standard recipe is **OBC-inspired blockwise OBS (B=256, adapted)**. The CSV
+and LaTeX tables use the short label **OBC-block256**. This is an explicit
+block-diagonal approximation, not a reproduction of published full-Hessian OBC.
+Do not remove that distinction in the paper.
 
-The new default `--numerics square-default` explicitly uses those legacy
-defaults, with cuDNN benchmarking and deterministic algorithms disabled, as
-in the original runner. `--numerics strict-fp32` is available as an explicit
-diagnostic alternative. The mode and resolved flags are printed and included
-in cache identity and final results. Historical JSONs did not record their
-flags, so this is a reconstruction from the code, not proof of the old GPU
-execution settings. The 0.02-pp baseline tolerance is unchanged.
+## Transfer and start
 
-Dense measurements are now written to `dense_checks.json` **before** the
-accuracy gate. Failures retain top-1/top-5 on both splits, expected values,
-deltas, tolerance, execution flags, and `passed: false`. A failed diagnostic
-does not authorize compression, including on resume. The `baseline` mode
-performs just those checks and layer-scope validation, with no candidate work.
-
-### Update an existing pilot after the ResNet baseline error
-
-Extract `obc-numerics-fix-v0.8.2.zip` in the existing server project directory.
-It replaces the OBC CLI, protocol checker, and comparison exporter, and adds
-`obc/numerics.py`. It includes the earlier tuple/list fix. Keep the successful
-DeiT/Swin pilot files; **do not delete them**. Their settings and the old code
-fingerprint differ, so new code must use a new output directory. To rerun only
-ResNet-18 from that project directory:
+Copy `pretrained-isolation-framework-v0.9.0.zip` and its `.zip.sha256` file to
+`~/Mehrshad/Transformer/OBC-compare/` on the same server. Keep the existing
+v0.8.0 environment activated; its installed Torch/timm versions are the ones
+that produced the matching baselines. The scripts load this package's `src`
+directly, so installing this package or upgrading Torch is unnecessary.
 
 ```bash
-obc_data_root=/storage/users/pdarbani/Mehrshad/Transformer/v4.0/pretrained-isolation-framework/data/imagenetv2
-nohup env PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}" python \
-  -m pretrained_isolation.obc.cli profile \
-  --config configs/resnet18_imagenetv2.yaml \
-  --reference outputs-v4/imagenetv2/resnet18/resnet18_imagenetv2_global_refinement.json \
-  --output-dir outputs-obc/v4-numerics/resnet18 \
-  --data-root "$obc_data_root" --numerics square-default --resume \
-  > logs/obc-resnet-pilot.log 2>&1 &
-```
-
-On success, collect `outputs-obc/v4-numerics/resnet18/pilot.json` and the two
-previous pilot JSONs to review runtime. These pilot timings come from different
-numerical modes and are preliminary. For actual final comparisons, run **all
-three networks with the same agreed execution mode** in new output folders.
-If the new ResNet gate still fails, inspect/send its `dense_checks.json`,
-`manifest.json`, and log. Do not widen tolerance just to pass the gate.
-
-Version 0.8.1 fixes the preprocessing validator: live timm tuples and their
-saved JSON lists are compared in the same JSON representation. Input size,
-normalization, interpolation, crop settings, and key presence remain strict.
-Actual differences now report the field and both values. The regression checks
-cover the real timm configurations against all three bundled v4 references.
-
-For a v0.8.0 pilot that stopped with `Preprocessing does not match the reference`
-before any dense checks or candidate caches were written, the small
-`obc-preprocessing-fix-v0.8.1.zip` can be extracted in the existing project
-directory to replace only `src/pretrained_isolation/obc/protocol.py`. This does
-not change the dataset or bypass consistency checks. The original package
-manifest will no longer describe that patched file; the complete v0.8.1 package
-has an updated manifest. If a previous run progressed far enough to create a
-cache manifest, the code fingerprint changes and a fresh OBC output directory
-is required. No cache deletion is needed for this reported startup failure.
-
-## Method and limits of the comparison
-
-Reference: Frantar, Singh and Alistarh, [Optimal Brain Compression, NeurIPS
-2022](https://arxiv.org/abs/2208.11580), [official repository](https://github.com/IST-DASLab/OBC),
-reviewed revision `9b7979bfc9ee20d87db553823a32ee9890beaa99`.
-
-The compression core is an independent implementation of sequential ExactOBS
-updates, using the full damped input Gram matrix, greedy removal/quantization,
-and compensation of the remaining coordinates. It preserves the quantizer's
-outlier-priority rule. It is **not** magnitude pruning, a diagonal-Hessian
-approximation, or SparseGPT. It is not a verbatim reproduction of every OBC
-experimental setting, nor does greedy ExactOBS guarantee a globally optimal mask.
-
-Call the method **OBC (matched ExactOBS + bounded DP, adapted)**. Disclose these
-changes when reporting results:
-
-* The same 16 candidates as SQuaRE: FP32 / W8A8 / W6A6 / W4A4 crossed with
-  dense / 2:4 / 3:8 / 4:8. Sparse FP32 parents are reused for quantization.
-* Signed symmetric per-output-channel min/max weight scales and per-layer
-  max-absolute activation ranges, collected in one dense calibration pass.
-  These match SQuaRE's representation; they replace OBC's native scale-search
-  recipe. Compensated weights are loaded directly, never re-quantized by the
-  SQuaRE wrapper. Biases and unselected modules remain FP32.
-* N means **retained slots**, including 3 retained out of 8. CNN grouping is
-  the SQuaRE flattened `(input channel, kernel height, kernel width)` order,
-  not OBC's alternate convolution permutation. A quantized retained value can
-  itself become zero; mask-slot density and actual nonzero count are separate.
-* By default, at most 32 evenly spaced input positions per example are used
-  for the Gram matrix (every calibration batch is visited). Swin's attention
-  windows are represented according to their module input batch dimension.
-  `--positions-per-example 0` uses all positions and can be much slower.
-  Hessian accumulation and inverse updates use float64 for numerical stability;
-  candidate weights return to the original float32 representation. Damping is
-  1% of the mean Gram diagonal by default. These choices can cost more time
-  than the original float32 inverse implementation.
-* A bounded, deterministic sample (up to 2,048 input rows, spread over batches)
-  measures normalized layer-output squared error, including activation
-  quantization, rather than evaluating all isolated candidates on final data.
-  Input-position sampling and bounded scoring are approximations; the OBS
-  updates are exact for their selected, damped Hessian.
-* DP minimizes summed reconstruction scores at a fixed grid of resource
-  targets, using the shared SQuaRE cost proxy. The 16 costs are exact integer
-  multiples of 1/256, so the allocator needs no cost rounding. Up to 32 unique
-  network proposals are evaluated on refinement data, shared across all three
-  budgets. Duplicate proposals are skipped. Accuracy is not assumed monotonic.
-  The cheapest observed refinement-feasible assignment wins, with dense FP32
-  as an anchor. This bounded search need not find the best possible allocation.
-* No retraining, BN tuning, bias correction, or normalization-statistics
-  correction. The omission of OBC's optional corrections is a declared
-  restriction of this matched comparison, not evidence against the complete
-  published recipe. A native-recipe baseline would be a separate experiment.
-
-The energy value is the legacy proxy
-`mean_layers((weight_bits / 32) * retained_fraction)`, over **selected layers**.
-It is not measured energy, latency, BOPs, or a whole-network cost estimate. A
-comparison may establish a difference in this proxy, not a hardware speedup.
-
-## Consistency checks and v4/v5 handling
-
-`--reference` names a completed SQuaRE `*_global_refinement.json`. It determines
-the model, seed, layer selection, calibration/refinement size and split. The
-runner checks preprocessing, layer order/count, duplicate exclusion metadata,
-sample counts, saved v5 split hashes, and dense top-1/top-5 accuracy on **both**
-refinement and final data. A mismatch fails before generating candidates.
-Default dense tolerance is 0.02 pp; investigate mismatches instead of widening
-it to accommodate a different checkpoint or dataset.
-
-For v4: 1,024 Threshold-0.7 refinement images for each Transformer, 256 for
-ResNet-18, and all 10,000 Matched Frequency final images. Current v5 defaults
-must not silently replace that protocol. v5's actual split is read from its
-completed result when available. A v4 OBC result cannot be paired with v5:
-the exporter checks the SHA-256 of the exact reference file.
-
-The older references do not contain original checkpoint or content hashes.
-We reconstruct their deterministic sample order and verify metadata plus dense
-accuracy, but cannot retroactively prove bitwise checkpoint/data identity.
-New OBC runs save full content manifests, checkpoint and code fingerprints.
-
-The legacy SQuaRE layerwise sweep used the final-evaluation images for candidate
-selection. Neither the existing v4 run nor a v5 run initialized from that same
-sweep has a fully untouched test set. The reports explicitly state this
-historical limitation; matching evaluation does not erase the exposure.
-
-OBC freezes **all three** winning assignments before evaluating compressed
-models on final data. Test-budget failure is reported, never repaired using
-test labels. No energy winner is declared when both methods fail the final
-accuracy budget. Fixed search settings are required on resume.
-
-## Transfer and run the pilot (do this first)
-
-Use a **new sibling directory** on the server. Do not overwrite the directory
-or editable installation used by the currently running SQuaRE experiment.
-The zip has a top-level `pretrained-isolation-framework-v0.8.2/` folder, code,
-tests, configs, documentation, and the original tracked v2/v4 reference JSONs.
-It excludes data, model checkpoints, papers, figure drafts, and OBC outputs.
-`PACKAGE_MANIFEST.json` records SHA-256 hashes for the packaged files.
-
-On your Mac (replace the SSH destination and directory):
-
-```bash
-scp pretrained-isolation-framework-v0.8.2.zip USER@SERVER:/YOUR/WORK/DIRECTORY/
-```
-
-On the server:
-
-```bash
-cd /YOUR/WORK/DIRECTORY
-unzip pretrained-isolation-framework-v0.8.2.zip
-cd pretrained-isolation-framework-v0.8.2
-
-# Activate the existing working environment with torch/timm installed.
-# Use your actual activation command/path; no package upgrade is required.
-source /PATH/TO/EXISTING/ENV/bin/activate
-
-python -c "import torch,timm; print(torch.__version__, timm.__version__); print(torch.cuda.get_device_name(0))"
-```
-
-v4 used torch `2.6.0+cu124`, timm `1.0.29`, Python `3.13.5`, RTX 3090.
-The scripts set PYTHONPATH to this package's source **for their process only**;
-they do not reinstall or modify the active SQuaRE environment.
-
-Run when the GPU is idle so the pilot timings are meaningful. The data root is
-the folder containing `imagenetv2-matched-frequency-format-val` and
-`imagenetv2-threshold0.7-format-val`:
-
-```bash
+cd ~/Mehrshad/Transformer/OBC-compare
+sha256sum -c pretrained-isolation-framework-v0.9.0.zip.sha256
+unzip pretrained-isolation-framework-v0.9.0.zip
+cd pretrained-isolation-framework-v0.9.0
 mkdir -p logs
-PYTHON=python bash scripts/profile_obc_imagenetv2.sh \
+
+nohup env PYTHON=python bash scripts/run_obc_v4_15h.sh \
   --data-root /storage/users/pdarbani/Mehrshad/Transformer/v4.0/pretrained-isolation-framework/data/imagenetv2 \
-  > logs/obc-pilot.log 2>&1
+  > logs/obc-v4-15h.log 2>&1 &
 ```
 
-That is the data directory recorded in the v4 run. If the data have moved,
-replace it with the actual parent directory of the two ImageNetV2 variants.
-
-For a persistent run, use `nohup env PYTHON=python bash ... > logs/obc-pilot.log
-2>&1 &`, or run inside `tmux`. Follow progress with:
+The data parent must contain both `imagenetv2-threshold0.7-format-val` and
+`imagenetv2-matched-frequency-format-val`. The saved reference controls the
+split even though the general project YAMLs contain newer v5 defaults.
+Use a fresh extracted folder. Do not overlay the old package or copy old pilot
+caches into the new output directory. Allow approximately 15 GB of free disk
+space for statistics, all candidates, base and selected checkpoints.
 
 ```bash
-tail -f logs/obc-pilot.log
+tail -f logs/obc-v4-15h.log
+# Detailed current model progress, for example:
+tail -f outputs-obc/v4-block256/logs/deit_tiny-run.log
 ```
 
-Each model profiles the smallest, middle, and largest input-width layers, using
-two evenly spaced output rows. The candidate-generation time cap is 120 seconds
-per layer. Dataset checks, dense evaluations, and statistics collection are
-additional work. The cap is cooperative between numerical operations: a single
-GPU kernel or matrix factorization can overrun it. This is not a hard kill timer.
+The top-level log announces each phase and its detailed log path. The script
+first verifies package hashes, runs a small CUDA numerical self-check, and
+checks all three dense baselines before starting expensive compression.
+Torch and timm versions must match the recorded reference environment
+(Torch 2.6.0+cu124, timm 1.0.29). Missing data, wrong preprocessing, mismatched
+baselines or numerical failures stop the relevant stage with diagnostics.
+No tolerance is increased automatically. The baseline tolerance is 0.02 pp.
+The default numerical mode matches the reconstructed SQuaRE Torch 2.6 defaults:
+CUDA matmul TF32 disabled, cuDNN TF32 enabled, benchmark/deterministic flags off.
 
-Results are under:
+## Total time budget and restart
+
+The default is **15 hours across the entire study**, not 15 hours per network.
+A persistent `study.json` ledger charges elapsed child-process time, including
+baseline checks, numerical self-checks, setup, compression, search, evaluation,
+and in-process artifact verification. It is GPU-job wall time, not a GPU
+utilization measurement. Final parent-process CSV/figure generation and artifact
+checks run on the CPU after the GPU jobs and may finish later.
+
+Initial full-run allowances are 3 h for DeiT and 5 h each for Swin and ResNet.
+Each full run reserves 5 minutes for search and 5 minutes for final evaluation.
+Unused time is available for resumable incomplete runs after the first pass.
+The controller terminates its child process group before its assigned allowance
+is exhausted, including a termination grace period. As with any OS deadline,
+process scheduling or an uninterruptible operation can delay cleanup.
+
+Re-run the identical launch command after a recoverable interruption. The study
+retains the remaining allowance, candidate caches, completed evaluations and
+frozen selections. It does not silently grant another 15 hours. A child inherits
+the study lock, preventing overlapping controllers after a parent crash. If an
+interrupted interval cannot be measured, it is conservatively charged through
+restart time and marked as uncertain in the ledger.
+
+If the entire allowance is exhausted, completed work remains reusable. Only an
+explicit later authorization such as `--extend-total-hours 18` raises the total
+ceiling to 18 hours while retaining all consumed time and caches. Repeating that
+flag does not grant more time. It is not used by the default 15-hour command.
+
+A time cap cannot guarantee completion of all candidates. An incomplete bank
+is never padded with another algorithm or reported as a completed comparison.
+If all banks exist but search hits its reserved deadline, the completed probes
+are frozen and evaluated; `search_finished_resource_grid=false` discloses that
+not all planned search points were explored. A dense safety anchor is always
+first. Actual search counts must accompany runtime claims.
+
+Do not change block size, row batching, references or code in an existing study.
+Those settings are part of its identity. No approximation is selected using
+final evaluation accuracy.
+
+## Matched v4 protocol
+
+| Model | Selected layers | Threshold-0.7 refinement images | Matched-frequency final images |
+|---|---:|---:|---:|
+| DeiT-Tiny | 48 | 1024 | 10000 |
+| Swin-Tiny | 48 | 1024 | 10000 |
+| ResNet-18 | 19 | 256 | 10000 |
+
+Exact model names, selection rules, preprocessing, seed, counts and duplicate
+exclusion come from each v4 reference. Ordered image-content manifests and the
+pretrained state hash are saved. Refinement/final content overlap is rejected.
+The v4 reference lacks original checkpoint/image hashes, so historical identity
+is supported by metadata and matching dense accuracy, not proven bitwise.
+
+The grid remains FP32/W8A8/W6A6/W4A4 crossed with dense/2:4/4:8/3:8. N counts
+retained slots; quantization may create additional zeros. The same flattened
+(C,Kh,Kw) convolution grouping and full-output-channel symmetric minmax weight
+quantizer are used. Activation ranges are calibrated once from the dense model.
+No BatchNorm tuning, fine-tuning, or normalization correction is performed.
+
+The numerical procedure is:
+
+1. Visit every calibration example, selecting up to 32 evenly spaced positions
+   per example. Swin attention treats windows as examples, covering every window.
+2. Accumulate a full FP64 input Gram. Use its diagonal blocks of at most 256
+   contiguous coordinates for OBS; N:M groups never cross block boundaries.
+3. Add damping equal to 1% of the **full-layer** mean Gram diagonal to each block.
+4. Prune using greedy OBS with compensation. Quantize the resulting sparse
+   parents using OBS compensation and the active principal Hessian. The original
+   OBC outlier-priority rule is used within each block. Quantization scales are
+   computed over the **full output channel**, not independently per block.
+5. Batch up to 32 independent output channels. Reuse the three FP32 sparse
+   parents across bitwidths. Keep the dense FP32 control unchanged.
+6. Score each full candidate's relative output reconstruction error on 2048
+   saved input vectors, including activation quantization. Score is not accuracy.
+7. Run exact DP for the additive reconstruction objective under the existing
+   selected-layer proxy at a fixed resource grid. Evaluate at most 32 distinct
+   network assignments on refinement images, shared across all three budgets.
+8. Select the lowest-cost refinement-feasible assignment for each budget and
+   irrevocably save all three winners before evaluating any compressed model on
+   final images. Resume never reopens search after this point.
+
+The energy proxy remains `(bits/32) * retained_fraction`, averaged without layer
+size/MAC weighting over selected layers. It is not physical energy, latency or
+whole-network cost. Fixed-bit fake-quantized inference is not a hardware speed
+benchmark. Full-Hessian mode remains available through the lower-level CLI with
+`--hessian-block-size 0`; it is not the standard 15-hour recipe.
+
+## Outputs to return
+
+The default root is `outputs-obc/v4-block256/`:
 
 ```text
-outputs-obc/v4/deit_tiny/pilot.json
-outputs-obc/v4/swin_tiny/pilot.json
-outputs-obc/v4/resnet18/pilot.json
-logs/obc-pilot.log
-```
-
-Send back those three JSONs and the log. A pilot timeout is itself a useful
-measurement, not an accuracy result. Linear time extrapolations are emitted
-only for completed sample banks and remain preliminary. Inverses, GPU
-utilization, and output-row count can change scaling. Review individual layer
-estimates and widths rather than treating them as a guaranteed whole-run ETA.
-
-Calibration statistics and activation ranges are reusable. Partial-output-row
-candidates are **not** reused as full-layer candidates. Cache identity includes
-code, checkpoint, data contents, model, grid, numerical settings, batch size,
-device, and environment. Changed settings require a new output directory.
-The process uses an OS file lock to prevent concurrent writes to one directory.
-
-Optional pilot controls (choose before starting a new directory):
-
-```bash
-OBC_ROOT=outputs-obc/v4-pilot-alt PYTHON=python \
-  bash scripts/profile_obc_imagenetv2.sh \
-  --data-root /PATH/TO/DATA/imagenetv2 \
-  --row-batch 2 --pilot-rows 4 --pilot-layer-seconds 180
-```
-
-## Full run (only after choosing a cap from the pilot)
-
-Set the agreed number explicitly. The example uses a shell placeholder, not a
-recommended number of hours:
-
-```bash
-OBC_MAX_HOURS=AGREED_HOURS_PER_MODEL PYTHON=python \
-  bash scripts/run_obc_imagenetv2.sh \
-  --data-root /PATH/TO/EXISTING/PROJECT/data/imagenetv2 \
-  > logs/obc-run.log 2>&1
-```
-
-The cap applies **per model, per invocation**. All three sequential model runs
-can therefore use roughly three times that allocation, plus final evaluation
-and indivisible-operation overhead. Time is checked during compression and
-between evaluations. On a preparation/search timeout, completed candidates and
-probes are retained; inspect `status.json`, then resume with the same command
-when more time is agreed. A timeout does not emit a falsely complete comparison.
-Final evaluations complete after the bounded search. An OS kill during a
-candidate discards only that unfinished candidate. Interrupted operations can
-make recorded stage times a lower bound; avoid deriving precise speedups from
-incomplete historical timers.
-
-The full ExactOBS pass may be expensive, particularly for wide ResNet
-convolutions. No approximate-Hessian fallback is silently enabled. If the pilot
-shows it is unsuitable, choose and validate a separately labeled approximation
-before the full run.
-
-Full outputs, for each model:
-
-```text
-outputs-obc/v4/MODEL/
-  manifest.json                 # protocol, environment, identity, adaptations
-  data_manifest.json            # ordered content/label manifests
-  dense_checks.json             # measured dense accuracies
-  activation_ranges.pt
-  pilot.json
-  preparation_attempts.json     # includes timed-out candidate attempts
-  cache/layer_NNN/statistics.pt
-  cache/layer_NNN/CONFIG.pt      # effective weights, mask, scale, score, timing
-  search.json                   # refinement-only proposals and measurements
-  frozen_selection.json         # all budgets fixed before final evaluation
-  selected/budget_0.1.pt         # selected compressed layers + activation ranges
+study.json                         # total time ledger, commands, completion status
+selfcheck.json                     # numerical self-check on the server GPU
+logs/                              # baseline and run logs per model
+MODEL/
+  manifest.json                    # exact identities/settings and method label
+  data_manifest.json               # ordered image paths, hashes, labels
+  dense_checks.json                # both dense accuracy gates and numerical flags
+  base_model.pt                    # original verified state for replay
+  activation_ranges.pt             # fixed activation calibration
+  setup_attempts.json              # setup timing, including resume work
+  preparation_attempts.json        # full candidate timing and partial attempts
+  cache/layer_XXX/statistics.pt     # full input Gram and score inputs
+  cache/layer_XXX/CONFIG.pt         # candidate weights, masks, scales, score
+  search.json                      # assignments, refinement scores and time
+  frozen_selection.json            # irrevocable winners for all three budgets
+  predictions/*.pt                 # ordered labels and top-5 predictions
+  selected/budget_0.1.pt            # selected weights/masks/scales
   selected/budget_0.5.pt
   selected/budget_1.pt
-  results.json                  # final accuracy/cost/configuration outcomes
+  results.json                     # final metrics, proxy, layer choices, times
+  verification.json                # independent artifact consistency checks
   status.json
+comparison/                        # generated automatically after all 3 finish
+  comparison_summary.csv           # 18 rows: 2 methods x 3 models x 3 budgets
+  layer_configurations.csv         # every selected layer for both methods
+  runtime_by_model.csv             # preparation, search, final evaluation
+  comparison_table.tex             # booktabs table for the paper
+  comparison_metadata.json         # exact baseline recipe and reference hashes
+  methodology.md                   # description and limitations for reporting
+  report.md
+  *.svg                            # optional when Matplotlib is installed
 ```
 
-Selected checkpoints contain compressed selected layers, not a self-contained
-whole model: reconstruct the verified base checkpoint and apply those tensors
-through the adapter. Candidate caches can require several GB; keep them for
-resume and reproducibility.
+If some models are incomplete, completed models are exported under
+`comparison_partial/`, and `study.json` says `incomplete`. The process exits
+nonzero in that case. Only `status=completed` with three verified model results
+is the complete nine-budget comparison.
 
-Once all three `results.json` files are complete:
+Every completed model automatically checks saved predictions against reported
+accuracy and manifest label order; selected weights against recorded masks,
+N:M counts and quantizer grids; checkpoints and datasets against hashes; final
+assignments against the frozen selection; and proxy/feasibility against those
+artifacts. This does not run inference a second time. Verification can also be
+repeated independently:
 
 ```bash
-PYTHON=python bash scripts/compare_obc_imagenetv2.sh
+PYTHONPATH=src python -m pretrained_isolation.obc.audit \
+  outputs-obc/v4-block256/deit_tiny
 ```
 
-This produces `comparisons/v4/{comparison_summary.csv,layer_configurations.csv,
-runtime_by_model.csv,comparison_table.tex,report.md}`. With Matplotlib available
-it also writes SVG accuracy-cost plots and layer precision/sparsity maps.
-The table needs LaTeX `booktabs`; place it in a suitable wide table environment.
-
-Runtime is reported once per model for OBC's shared preparation/search, plus
-final evaluations. SQuaRE's recorded v2 candidate-evaluation time is shown
-separately from v4 refinement-plus-final time. The historical timers omit some
-setup and do not establish a clean overall speedup. The report never divides
-OBC's full preparation by SQuaRE's refinement-only timer. Pilot-only compressed
-rows have a separate timing field. Final evaluation reuse across identical
-budget assignments is explicit.
-
-## When v5 arrives
-
-Copy the completed v5 outputs into this new package directory (or use an
-absolute REFERENCE_ROOT). Leave the old running project unchanged:
+To regenerate the comparison files without GPU experiments:
 
 ```bash
-REFERENCE_ROOT=outputs-v5/imagenetv2 OBC_ROOT=outputs-obc/v5 PYTHON=python \
-  bash scripts/profile_obc_imagenetv2.sh --data-root /PATH/TO/DATA/imagenetv2
-```
-
-Use those same roots for `run_obc_imagenetv2.sh`, setting the agreed cap, and:
-
-```bash
-REFERENCE_ROOT=outputs-v5/imagenetv2 OBC_ROOT=outputs-obc/v5 \
-  COMPARISON_ROOT=comparisons/v5 PYTHON=python \
+PYTHON=python OBC_ROOT=outputs-obc/v4-block256 \
+  COMPARISON_ROOT=outputs-obc/v4-block256/comparison \
   bash scripts/compare_obc_imagenetv2.sh
 ```
 
-If v5 uses another layerwise selection source, set `LAYERWISE_ROOT` accordingly.
-The exporter verifies its hash instead of attributing unrelated preparation
-time. The old bank is not reused across changed splits/calibration.
+Send back the complete `outputs-obc/v4-block256/` folder if possible. Keep the
+large checkpoints/caches on the server if transfer is expensive; the JSONs,
+comparison folder and logs suffice for initial analysis. Per-image prediction
+files support later accuracy audits. Do not delete the source artifacts merely
+because the CSV has been generated.
 
-## Local verification
+## Reporting accurately
 
-```bash
-PYTHONPATH=src python -m pytest -q
-```
+Use the explicit OBC-block256 label and approximation description. Report final
+top-1/top-5, final drop, requested budget, final feasibility and proxy cost.
+Refinement feasibility is separately exported. Existing v4 rows are preserved,
+including rows that exceed final budgets; `status=succeeded` in the old file is
+not interpreted as accuracy feasibility.
 
-Tests cover constrained least-squares agreement, an independently recomputed
-inverse quantization oracle, 3:8 semantics, sparse support preservation,
-representable grids, batched-row agreement, DP versus exhaustive enumeration,
-convolution layout, candidate scoring with activation quantization, v4/v5
-protocol rejection, and a complete synthetic CPU run through resume/export.
-With timm installed, all three actual architectures are checked for the exact
-48/48/19 selected-layer scopes and unchanged dense outputs after wrapping.
-These checks do not replace pretrained CUDA/ImageNetV2 validation on the server.
+Report OBC preparation and search once per network, shared across budgets.
+SQuaRE's original v2 candidate-generation timers are included along with v4
+refinement/final timers. Historical timers omit some setup; they do not have
+identical boundaries to the new study ledger. Do not derive an unqualified
+wall-clock speedup from those numbers.
+
+Historical SQuaRE v4 candidate selection used final images. This matched legacy
+comparison does not establish untouched-test generalization. No SQuaRE rerun is
+required to compare the existing results, but the paper must describe the
+protocol honestly. Future v5 comparisons need separate reference identities and
+outputs, not relabeled v4 results.
+
+The original method reference is Frantar et al., Optimal Brain Compression,
+NeurIPS 2022; upstream reference implementation:
+https://github.com/IST-DASLab/OBC at
+`9b7979bfc9ee20d87db553823a32ee9890beaa99`. This package is an independent adapted
+implementation. Its tests and artifact checks reduce implementation mistakes;
+they cannot guarantee a particular accuracy outcome or server runtime.

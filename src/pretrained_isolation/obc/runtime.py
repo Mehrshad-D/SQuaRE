@@ -10,6 +10,7 @@ from ..joint import normalized_energy
 from ..modules import IsolatedConv2d
 from ..quantization import fake_quant_symmetric
 from .core import check_deadline, damp_hessian, obs_prune, obs_quantize
+from .blockwise import prepare_blocks, blockwise_prune, blockwise_quantize
 
 
 def synchronize(device):
@@ -88,11 +89,14 @@ def collect_statistics(model, module, loader, device, positions: int,
 
 @torch.no_grad()
 def build_candidates(weight, stats, specs, activation_amax, *, row_batch=1,
-                     damping=0.01, deadline=None, completed=None, on_candidate=None):
+                     damping=0.01, deadline=None, completed=None, on_candidate=None,
+                     block_size=0):
     """Each candidate starts from the original weights or its FP32 sparse parent."""
     completed = dict(completed or {})
     check_deadline(deadline)
-    h = damp_hessian(stats["gram"], damping)
+    h = prepare_blocks(stats["gram"], block_size, damping) if block_size else damp_hessian(stats["gram"], damping)
+    prune = blockwise_prune if block_size else obs_prune
+    quantize = blockwise_quantize if block_size else obs_quantize
     x = stats["score_inputs"].to(weight.device)
     original = weight.flatten(1)
     target = F.linear(x, original)
@@ -111,16 +115,17 @@ def build_candidates(weight, stats, specs, activation_amax, *, row_batch=1,
         synchronize(weight.device)
         start = time.perf_counter()
         if spec["sparsity"] not in sparse_parents:
-            sparse_parents[spec["sparsity"]] = obs_prune(
+            sparse_parents[spec["sparsity"]] = prune(
                 weight, h, spec["n"], spec["m"], row_batch=row_batch, deadline=deadline)
         parent, mask = sparse_parents[spec["sparsity"]]
-        quantized, scale = obs_quantize(parent, h, spec["weight_bits"], mask=mask,
+        quantized, scale = quantize(parent, h, spec["weight_bits"], mask=mask,
                                         row_batch=row_batch, deadline=deadline)
         qx = fake_quant_symmetric(x, spec["activation_bits"], fixed_amax=activation_amax)
         difference = F.linear(qx, quantized.flatten(1)) - target
         score = difference.double().square().sum().item() / max(signal, 1e-30)
         synchronize(weight.device)
-        entry = {"configuration": key, "specification": dict(spec),
+        entry = {"configuration": key,
+                 "specification": {**spec, "policy": "blockwise_obs" if block_size else "exact_obs"},
                  "normalized_energy": normalized_energy(spec), "score": score,
                  "seconds": time.perf_counter() - start,
                  "weight": quantized.cpu(), "mask": mask.cpu(), "scale": scale.cpu(),

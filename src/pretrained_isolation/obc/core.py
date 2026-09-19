@@ -96,7 +96,8 @@ def obs_prune(weight: Tensor, hessian: Tensor, n: int, m: int, *,
 @torch.no_grad()
 def obs_quantize(weight: Tensor, hessian: Tensor, bits: int, *,
                  mask: Tensor | None = None, row_batch: int = 1,
-                 deadline: float | None = None) -> tuple[Tensor, Tensor]:
+                 deadline: float | None = None,
+                 fixed_scales: Tensor | None = None) -> tuple[Tensor, Tensor]:
     """Exact greedy OBS quantization with OBC's outlier-priority rule.
 
     Previously pruned coordinates stay fixed at zero. The inverse is taken on
@@ -115,8 +116,12 @@ def obs_quantize(weight: Tensor, hessian: Tensor, bits: int, *,
     if hessian.shape != (w0.shape[1], w0.shape[1]):
         raise ValueError("Weight/Hessian shape mismatch")
     qmax = 2 ** (bits - 1) - 1
-    scales = (w0.abs().amax(1, keepdim=True) / qmax).clamp_min(torch.finfo(weight.dtype).eps)
+    scales = (w0.abs().amax(1, keepdim=True) / qmax).clamp_min(torch.finfo(weight.dtype).eps) if fixed_scales is None else fixed_scales.to(device=w0.device, dtype=w0.dtype)
+    if scales.shape != (len(w0), 1) or not torch.isfinite(scales).all() or (scales <= 0).any():
+        raise ValueError("Require one finite positive quantization scale per full output channel")
     result = torch.zeros_like(w0)
+    # Dense supports share one initial inverse across all output channels.
+    dense_inverse = _inverse(hessian.double()) if support.all() else None
     # Grouping rows is exact and bounds inverse storage. Supports have equal
     # size for N:M, but their active coordinate sets need not be identical.
     for start in range(0, len(w0), row_batch):
@@ -130,8 +135,11 @@ def obs_quantize(weight: Tensor, hessian: Tensor, bits: int, *,
             continue
         batch = torch.arange(stop - start, device=w0.device)
         w = w0[start:stop].gather(1, active).clone()
-        h = hessian.double()[active[:, :, None], active[:, None, :]]
-        inv = _inverse(h)
+        if dense_inverse is not None:
+            inv = dense_inverse.expand(stop - start, -1, -1).clone()
+        else:
+            h = hessian.double()[active[:, :, None], active[:, None, :]]
+            inv = _inverse(h)
         scale = scales[start:stop]
         fixed = torch.zeros_like(w, dtype=torch.bool)
         qout = torch.zeros_like(w)
@@ -159,7 +167,7 @@ def obs_quantize(weight: Tensor, hessian: Tensor, bits: int, *,
     return result.reshape(shape).to(weight.dtype), scales.to(weight.dtype)
 
 
-def allocate_dp(candidates: list[list[dict]], cost_cap: float) -> list[int]:
+def allocate_dp(candidates: list[list[dict]], cost_cap: float, *, deadline=None) -> list[int]:
     """Minimize summed normalized reconstruction error under exact proxy cost.
 
     All 16 grid costs are integer multiples of 1/256; no cost rounding is needed.
@@ -171,6 +179,7 @@ def allocate_dp(candidates: list[list[dict]], cost_cap: float) -> list[int]:
     limit = math.floor(cost_cap * 256 + 1e-8)
     states = {0: (0.0, [])}
     for layer in candidates:
+        check_deadline(deadline)
         next_states = {}
         for cost, (loss, path) in states.items():
             for index, item in enumerate(layer):

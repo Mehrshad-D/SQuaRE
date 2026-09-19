@@ -284,7 +284,9 @@ def test_real_architecture_adapters_preserve_dense_predictions(model, expected):
         torch.set_num_threads(old_threads)
 
 
-def test_full_cpu_workflow_freeze_resume_and_compare(tmp_path, monkeypatch):
+@pytest.mark.parametrize("block_size", [0, 8])
+@pytest.mark.parametrize("truncate_search", [False, True])
+def test_full_cpu_workflow_freeze_resume_and_compare(tmp_path, monkeypatch, block_size, truncate_search):
     pytest.importorskip("timm")
     from torch.utils.data import DataLoader, TensorDataset
     from pretrained_isolation.obc import cli
@@ -292,9 +294,9 @@ def test_full_cpu_workflow_freeze_resume_and_compare(tmp_path, monkeypatch):
     from pretrained_isolation.engine import evaluate
     torch.manual_seed(22)
     model = nn.Sequential()
-    model.add_module("proj", nn.Linear(8, 6))
-    refinement = DataLoader(TensorDataset(torch.randn(12, 8), torch.randint(0, 6, (12,))), batch_size=4)
-    final = DataLoader(TensorDataset(torch.randn(12, 8), torch.randint(0, 6, (12,))), batch_size=4)
+    model.add_module("proj", nn.Linear(16, 6))
+    refinement = DataLoader(TensorDataset(torch.randn(12, 16), torch.randint(0, 6, (12,))), batch_size=4)
+    final = DataLoader(TensorDataset(torch.randn(12, 16), torch.randint(0, 6, (12,))), batch_size=4)
     device = torch.device("cpu")
     dense = evaluate(model, final, device)
     dense_ref = evaluate(model, refinement, device)
@@ -319,17 +321,19 @@ def test_full_cpu_workflow_freeze_resume_and_compare(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "create_pretrained", lambda _: deepcopy(model))
     monkeypatch.setattr(cli, "make_refinement_loaders", lambda *a: (refinement, final, {}, 12, 12, None,
         {"dataset": "ImageNetV2"}, {"request": {"source": "calib_dir"}}))
-    monkeypatch.setattr(cli, "dataset_manifest", lambda ds: [{"sha256": "ref" if ds is refinement.dataset else "final"}])
+    monkeypatch.setattr(cli, "dataset_manifest", lambda ds: [
+        {"file": str(i), "label": int(ds[i][1]), "sha256": ("ref" if ds is refinement.dataset else "final") + str(i)}
+        for i in range(len(ds))])
     events = []
     real_eval = cli.evaluate
-    def checked_eval(net, loader, *a):
+    def checked_eval(net, loader, *a, **kwargs):
         if loader is final and events:
             assert (tmp_path / "obc" / "frozen_selection.json").exists()
         events.append(loader)
-        return real_eval(net, loader, *a)
+        return real_eval(net, loader, *a, **kwargs)
     monkeypatch.setattr(cli, "evaluate", checked_eval)
     args = cli.parser().parse_args(["run", "--config", "unused", "--reference", str(reference_path),
-        "--output-dir", str(tmp_path / "obc"), "--device", "cpu", "--max-hours", "1", "--max-evaluations", "6"])
+        "--output-dir", str(tmp_path / "obc"), "--device", "cpu", "--max-hours", "1", "--max-evaluations", "6", "--hessian-block-size", str(block_size)])
     args.mode = "baseline"
     checks = cli.run(args)
     assert checks["passed"]
@@ -341,14 +345,32 @@ def test_full_cpu_workflow_freeze_resume_and_compare(tmp_path, monkeypatch):
     assert not (tmp_path / "obc/cache/layer_000/FP32__dense.pt").exists()
     args.mode = "run"
     args.resume = True
+    if truncate_search:
+        real_proposals = cli.proposed_assignments
+        def capped_proposals(*a, **kw):
+            yield next(iter(real_proposals(*a, **kw)))
+            raise CompressionTimeout("Simulated search deadline after dense anchor")
+        monkeypatch.setattr(cli, "proposed_assignments", capped_proposals)
     result = cli.run(args)
     assert len(result["experiments"]) == 3
     assert result["search_evaluations"] <= 6
+    assert result["search_finished_resource_grid"] is not truncate_search
+    from pretrained_isolation.obc.audit import verify_run
+    assert verify_run(tmp_path / "obc")["passed"]
+    frozen_before = (tmp_path / "obc/frozen_selection.json").read_bytes()
+    monkeypatch.setattr(cli, "proposed_assignments", lambda *a, **kw: (_ for _ in ()).throw(AssertionError("Selection reopened after final evaluation")))
+    # Resume after interruption during final export; already frozen search
+    # must never be extended, even if a fresh time allowance is available.
+    partial = deepcopy(result)
+    partial.pop("completed_at")
+    partial["experiments"] = partial["experiments"][:1]
+    (tmp_path / "obc/results.json").write_text(json.dumps(partial))
     args.resume = True
     events.clear()
     resumed = cli.run(args)
     assert len(resumed["experiments"]) == 3
-    assert events == []
+    assert all(loader is final for loader in events)
+    assert (tmp_path / "obc/frozen_selection.json").read_bytes() == frozen_before
     args.numerics = "strict-fp32"
     with pytest.raises(ValueError, match="Cache identity changed"):
         cli.run(args)
@@ -356,6 +378,14 @@ def test_full_cpu_workflow_freeze_resume_and_compare(tmp_path, monkeypatch):
     rows = compare([reference_path], [tmp_path / "obc/results.json"], tmp_path / "comparison")
     assert len(rows) == 6
     assert (tmp_path / "comparison/comparison_table.tex").exists()
+    assert (tmp_path / "comparison/methodology.md").exists()
+    assert all("blockwise" in r["method_description"] for r in rows if r["method"] != "SQuaRE") if block_size else True
+    saved_prediction = tmp_path / "obc" / resumed["experiments"][0]["accuracy"]["predictions_file"]
+    original_bytes = saved_prediction.read_bytes()
+    saved_prediction.write_bytes(original_bytes + b"corrupt")
+    with pytest.raises(ValueError, match="Prediction checksum"):
+        verify_run(tmp_path / "obc")
+    saved_prediction.write_bytes(original_bytes)
     reference["seed"] = 17
     reference_path.write_text(json.dumps(reference))
     with pytest.raises(ValueError, match="different reference"):

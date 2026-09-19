@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pretrained-isolation"
-version = "0.8.2"
+version = "0.9.0"
 description = "Isolated post-training quantization and sparsity sweeps for pretrained ImageNet models"
 requires-python = ">=3.10"
 dependencies = [
