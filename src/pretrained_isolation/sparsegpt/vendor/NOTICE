@@ -1,0 +1,10 @@
+SparseGPT reference code
+https://github.com/IST-DASLab/sparsegpt
+Authors: Elias Frantar and Dan Alistarh
+Pinned revision: 147d2159dc4f3e9f73e47b32c04d7b3708f44436
+License: Apache License 2.0 (see LICENSE in this directory).
+
+sparsegpt_reference.py and quant_reference.py are unmodified upstream files
+(renamed for packaging). They are used for validation. The modified tensor
+implementation is ../core.py; adaptations are documented there and in
+SPARSEGPT_COMPARISON.md at the package root.
