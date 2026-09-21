@@ -1,28 +1,40 @@
-# Public Pretrained Quantization–Sparsity Isolation Framework
+# SQuaRE: joint sparsity and quantization experiments
 
-Version 0.8.2 provides a profile-first, matched-setting OBC/ExactOBS baseline,
-JSON-safe preprocessing checks, explicit SQuaRE-compatible inference numerics,
-and saved diagnostics for failed dense baseline checks.
-See [OBC comparison and server instructions](docs/OBC_COMPARISON.md).
-The new server scripts run from their own source directory without replacing
-the environment or code used by an ongoing SQuaRE experiment.
+This repository implements post-training quantization and sparsity experiments
+for pretrained vision models, isolated layer configuration sweeps, simultaneous
+layer assignment, and interaction-aware global refinement. It also includes
+matched OBC-inspired and SparseGPT-adapted comparison pipelines. No training or
+fine-tuning is required.
 
-This project evaluates famous pretrained vision models without training or fine-tuning.
-It uses the freely downloadable **ImageNetV2 MatchedFrequency** benchmark and checks the
-dense result against `timm`'s published result before running compression experiments.
+Supported pretrained `timm` models:
 
-Included models:
+| Family | Model identifier |
+|---|---|
+| Transformer | `deit_tiny_patch16_224.fb_in1k` |
+| Hierarchical transformer | `swin_tiny_patch4_window7_224.ms_in1k` |
+| CNN | `resnet18.a1_in1k` |
 
-| Family | Exact pretrained model | Parameters | ImageNetV2 reference top-1 / top-5 |
-|---|---|---:|---:|
-| Transformer | `deit_tiny_patch16_224.fb_in1k` | 5.72M | 59.92 / 82.75 |
-| Hierarchical transformer | `swin_tiny_patch4_window7_224.ms_in1k` | 28.29M | 69.45 / 89.02 |
-| CNN | `resnet18.a1_in1k` | 11.69M | 59.32 / 81.11 |
+The framework uses the public ImageNetV2 matched-frequency and threshold-0.7
+variants; the original ImageNet-1k dataset is not required. Model weights are
+loaded through `timm`. Experimental outcomes belong in the paper and archived
+result files, rather than this usage guide.
 
-The model weights, evaluation set, calibration set, framework, and reference-result CSV
-are publicly downloadable. The original ImageNet-1k training/validation data are not
-required. These models were originally trained on ImageNet-1k; consequently this setup
-reproduces their published **ImageNetV2** accuracy, not their ImageNet-1k headline score.
+## Workflow
+
+- **Isolation:** evaluate weight quantization, activation quantization, and
+  pruning independently or in fixed combinations.
+- **Layer-wise selection:** evaluate a 16-choice sparsity/precision grid with
+  one selected layer changed at a time, then select per-layer configurations.
+- **Joint evaluation:** apply all independently selected configurations together.
+- **Global refinement:** use contextual accuracy probes for single-, pair-, and
+  block-wise repair, followed by energy-proxy reclamation.
+- **Prior-work comparisons:** generate compensated candidates with OBC-inspired
+  blockwise OBS or adapted SparseGPT and allocate them under matched budgets.
+
+The implemented SQuaRE selector uses measured isolated accuracy and contextual
+accuracy probes. Baseline adapters use reconstruction scores for their bounded
+allocation search. Resource values are analytical proxies, not measurements from
+hardware energy or latency models.
 
 ## Isolation guarantees
 
@@ -44,9 +56,7 @@ is no retraining, fine-tuning, batch-normalization adaptation, or bias correctio
 ## Install
 
 ```bash
-unzip pretrained-isolation-framework-v0.6.0.zip
-cd pretrained-isolation-framework
-
+# From the repository root:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
@@ -64,8 +74,11 @@ ptq-download-imagenetv2 --root data/imagenetv2
 
 This downloads and validates:
 
-- MatchedFrequency: all 10,000 images are used for final evaluation.
-- Threshold0.7: a deterministic subset is used only for calibration.
+- MatchedFrequency: all 10,000 images are used for evaluation in the isolation,
+  layer-wise and legacy v4 suites. Current v5 refinement reserves a disjoint
+  subset for final evaluation, as described below.
+- Threshold0.7: a deterministic subset supplies quantizer/pruning calibration.
+  The legacy v4 protocol also uses a labeled subset for refinement.
 
 Both contain 1,000 classes with ten images per class. The download is resumable. Archives
 are deleted after successful extraction, leaving about 2.4 GiB of images. The loader maps
@@ -73,8 +86,8 @@ numeric directories directly to canonical ImageNet class indices; it does not us
 lexicographic class ordering.
 
 The framework hashes both variants once and removes byte-identical overlaps from the
-calibration pool. Hash manifests are reused on later runs. Labels are never used for
-calibration.
+calibration pool. Hash manifests are reused on later runs. Quantizer calibration
+does not use labels; accuracy evaluation and refinement do.
 
 ## Verify all dense baselines first
 
@@ -411,6 +424,64 @@ measures numerical accuracy and does not imply integer-kernel speedup.
 Transformer runs select QKV, attention output, and both MLP projections in every block.
 The CNN run selects residual-stage convolutions while leaving the stem and classifier
 dense. Sparsity experiments remain FP32 throughout.
+
+## Matched OBC and SparseGPT comparisons
+
+The comparison controllers reconstruct the **legacy v4** protocol from saved
+references, including preprocessing, layer scope, calibration/refinement splits,
+and dense checks. They do not rerun SQuaRE. The current general refinement
+script instead uses the v5 split described above; results from those protocols
+must not be mixed.
+
+- **OBC-block256:** OBC-inspired block-diagonal OBS with 256-column Hessian
+  blocks, matched quantization and bounded reconstruction-score DP allocation.
+  This is an approximation to published OBC, not a full-Hessian reproduction.
+- **SparseGPT-adapted:** full sampled-input Gram matrix, 128-column processing
+  blocks with cross-block compensation, matched vision weight/activation
+  quantization and bounded DP allocation. It reuses verified OBC input statistics;
+  it is not an unchanged reproduction of the published LLM experiments.
+
+Run OBC with the actual dataset parent directory (containing both ImageNetV2
+variants):
+
+```bash
+bash scripts/run_obc_v4_15h.sh --data-root data/imagenetv2
+```
+
+After a complete OBC study, launch SparseGPT using the original server artifacts
+and environment:
+
+```bash
+bash scripts/run_sparsegpt_v4_2h.sh --check-only
+bash scripts/run_sparsegpt_v4_2h.sh
+```
+
+Defaults are `outputs-obc/v4-block256/` and `outputs-sparsegpt/v4/`. The SparseGPT
+launcher accepts `--obc-root` and `--output-root` overrides and recovers the
+original interpreter from the OBC ledger. The two-hour controller profiles first
+and stops if projected work cannot fit; the cap does not guarantee completion.
+Copied comparison CSVs alone cannot substitute for the complete OBC artifacts.
+Both controllers retain elapsed work and resumable caches; GPU experiments run
+sequentially. Keep the original Torch/timm environment for historical matching.
+
+Each completed comparison exports accuracy/feasibility summaries, layer
+configurations, runtime accounting and protocol metadata. Full model directories
+also retain checkpoints, predictions, manifests and verification records.
+See [OBC instructions](docs/OBC_COMPARISON.md),
+[OBC recovery](OBC_RECOVERY.md), and
+[SparseGPT instructions and attribution](SPARSEGPT_COMPARISON.md).
+
+Search uses the unweighted selected-layer average
+`mean(retained_fraction * weight_bits / 32)`. A separate post-hoc
+parameter-weighted proxy, `sum(P * retained_fraction * weight_bits) / (32 * sum(P))`,
+estimates ideal selected-weight payload. It excludes packing/metadata overhead
+and must not be labeled measured energy. Weighting existing configurations does
+not rerun or change the search objective. Refinement feasibility and final-set
+feasibility are reported separately; the former does not guarantee the latter.
+
+Compact paper-comparison exports and their schema are in
+[outputs-comparison/v4](outputs-comparison/v4/README.md).
+Large model caches and local analysis reports are not part of that archive.
 
 ## Practical notes
 

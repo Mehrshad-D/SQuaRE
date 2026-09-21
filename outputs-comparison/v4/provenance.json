@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "protocol": "legacy v4, threshold-0.7 refinement; matched-frequency final evaluation",
+  "cost_formula": "sum(P_l * d_l * w_l) / (32 * sum(P_l)); selected-layer scope; post-hoc weighting",
+  "aggregation": "Arithmetic mean over nine model/budget rows per method; compute from unrounded values.",
+  "source_sha256": {
+    "outsputs-sparsegpt/comparison/comparison_summary.csv": "c4f122c94349bd0866f4d53b0c02e06503dce34ef6a335c3458aa609fc822a06",
+    "outsputs-sparsegpt/comparison/layer_configurations.csv": "9e343d2edbe8f8c30b3e1bfb06a71886928e504fe42161f9846b43ffc174b90c",
+    "outsputs-sparsegpt/comparison/comparison_metadata.json": "4d81df009588aafd197b68663612496a3c63c05639f7e88867818482eff2c6ff",
+    "outputs-v4/imagenetv2/deit_tiny/deit_tiny_imagenetv2_global_refinement.json": "50e5567036b82269dafcdb7cc66d8e94d32b9c2544bbc3392089b6127415e1b1",
+    "outputs-v4/imagenetv2/resnet18/resnet18_imagenetv2_global_refinement.json": "a702731a6a9f2dac668f312e3813d924244b1cd50e61c9b58ed30995bb6c1662",
+    "outputs-v4/imagenetv2/swin_tiny/swin_tiny_imagenetv2_global_refinement.json": "c49bf278bba1ccad8f94b03a1da29831031d23fc13eb7bdeebc0e727797dda9b"
+  },
+  "method_metadata": [
+    {
+      "model": "deit_tiny",
+      "method": "OBC-block256",
+      "description": "OBC-inspired blockwise OBS (B=256, adapted)",
+      "reference_sha256": "50e5567036b82269dafcdb7cc66d8e94d32b9c2544bbc3392089b6127415e1b1",
+      "settings": {
+        "algorithm": "matched-obs-2",
+        "upstream_revision": "9b7979bfc9ee20d87db553823a32ee9890beaa99",
+        "damping": 0.01,
+        "row_batch": 32,
+        "positions_per_example": 32,
+        "score_rows": 2048,
+        "quantizer": "SQuaRE symmetric per-output-channel minmax W / per-layer maxabs A",
+        "conv_layout": "flattened input dimension (C,Kh,Kw)",
+        "normalization_correction": false,
+        "hessian": "block-diagonal sampled-input Gram",
+        "hessian_block_size": 256,
+        "hessian_dtype": "float64",
+        "damping_scope": "full-layer mean input energy",
+        "quantization_scale_scope": "full output channel, not per block",
+        "execution_settings": {
+          "mode": "square-default",
+          "cuda_matmul_allow_tf32": false,
+          "cudnn_allow_tf32": true,
+          "cudnn_benchmark": false,
+          "cudnn_deterministic": false,
+          "deterministic_algorithms": false,
+          "float32_matmul_precision": "highest",
+          "cudnn_version": 90100,
+          "provenance": "Reconstructed PyTorch 2.6 defaults from SQuaRE runner code; legacy results did not record these flags. Dense checks still required."
+        }
+      },
+      "limitations": [
+        "Reference lacks original checkpoint/content hashes; agreement is checked via metadata and dense accuracy.",
+        "SQuaRE legacy layerwise selection used final images; historical comparison is not an untouched-test study.",
+        "Energy is an unweighted selected-layer proxy, not measured hardware energy.",
+        "Blockwise OBS is an OBC-inspired approximation, not a reproduction of full-Hessian published OBC."
+      ],
+      "adaptations": [
+        "expanded 16-point grid",
+        "signed symmetric quantizer and shared activation calibration",
+        "SQuaRE convolution grouping",
+        "bounded reconstruction scoring",
+        "DP uses SQuaRE proxy; fixed resource grid with refinement accuracy selection",
+        "no BN tuning/statistics correction",
+        "Block-diagonal Hessian, contiguous blocks <= 256; no cross-block compensation"
+      ]
+    },
+    {
+      "model": "deit_tiny",
+      "method": "SparseGPT-adapted",
+      "description": "SparseGPT (full sampled-input Hessian + matched W/A quantization + bounded DP, adapted)",
+      "reference_sha256": "50e5567036b82269dafcdb7cc66d8e94d32b9c2544bbc3392089b6127415e1b1",
+      "settings": {
+        "algorithm": "matched-sparsegpt-1",
+        "upstream_revision": "147d2159dc4f3e9f73e47b32c04d7b3708f44436",
+        "damping": 0.01,
+        "processing_block_size": 128,
+        "positions_per_example": 32,
+        "score_rows": 2048,
+        "quantizer": "SQuaRE symmetric per-output-channel minmax W / per-layer maxabs A",
+        "conv_layout": "flattened input dimension (C,Kh,Kw)",
+        "normalization_correction": false,
+        "hessian": "full sampled-input Gram; cross-block compensation retained",
+        "hessian_dtype": "float32",
+        "damping_scope": "full-layer mean after upstream dead-input treatment",
+        "quantization_scale_scope": "full output channel, not per block",
+        "execution_settings": {
+          "mode": "square-default",
+          "cuda_matmul_allow_tf32": false,
+          "cudnn_allow_tf32": true,
+          "cudnn_benchmark": false,
+          "cudnn_deterministic": false,
+          "deterministic_algorithms": false,
+          "float32_matmul_precision": "highest",
+          "cudnn_version": 90100,
+          "provenance": "Reconstructed PyTorch 2.6 defaults from SQuaRE runner code; legacy results did not record these flags. Dense checks still required."
+        }
+      },
+      "limitations": [
+        "Reference lacks original checkpoint/content hashes; agreement is checked via metadata and dense accuracy.",
+        "SQuaRE legacy layerwise selection used final images; historical comparison is not an untouched-test study.",
+        "Energy is an unweighted selected-layer proxy, not measured hardware energy."
+      ],
+      "adaptations": [
+        "expanded 16-point grid",
+        "signed symmetric quantizer and shared activation calibration",
+        "SQuaRE convolution grouping",
+        "bounded reconstruction scoring",
+        "DP uses SQuaRE proxy; fixed resource grid with refinement accuracy selection",
+        "no BN tuning/statistics correction",
+        "dense-input candidate bank instead of sequential compressed-model calibration",
+        "vision and convolution adapters; retained-N convention including 3:8",
+        "joint SparseGPT pruning/weight quantization; matched activation quantization"
+      ]
+    },
+    {
+      "model": "swin_tiny",
+      "method": "OBC-block256",
+      "description": "OBC-inspired blockwise OBS (B=256, adapted)",
+      "reference_sha256": "c49bf278bba1ccad8f94b03a1da29831031d23fc13eb7bdeebc0e727797dda9b",
+      "settings": {
+        "algorithm": "matched-obs-2",
+        "upstream_revision": "9b7979bfc9ee20d87db553823a32ee9890beaa99",
+        "damping": 0.01,
+        "row_batch": 32,
+        "positions_per_example": 32,
+        "score_rows": 2048,
+        "quantizer": "SQuaRE symmetric per-output-channel minmax W / per-layer maxabs A",
+        "conv_layout": "flattened input dimension (C,Kh,Kw)",
+        "normalization_correction": false,
+        "hessian": "block-diagonal sampled-input Gram",
+        "hessian_block_size": 256,
+        "hessian_dtype": "float64",
+        "damping_scope": "full-layer mean input energy",
+        "quantization_scale_scope": "full output channel, not per block",
+        "execution_settings": {
+          "mode": "square-default",
+          "cuda_matmul_allow_tf32": false,
+          "cudnn_allow_tf32": true,
+          "cudnn_benchmark": false,
+          "cudnn_deterministic": false,
+          "deterministic_algorithms": false,
+          "float32_matmul_precision": "highest",
+          "cudnn_version": 90100,
+          "provenance": "Reconstructed PyTorch 2.6 defaults from SQuaRE runner code; legacy results did not record these flags. Dense checks still required."
+        }
+      },
+      "limitations": [
+        "Reference lacks original checkpoint/content hashes; agreement is checked via metadata and dense accuracy.",
+        "SQuaRE legacy layerwise selection used final images; historical comparison is not an untouched-test study.",
+        "Energy is an unweighted selected-layer proxy, not measured hardware energy.",
+        "Blockwise OBS is an OBC-inspired approximation, not a reproduction of full-Hessian published OBC."
+      ],
+      "adaptations": [
+        "expanded 16-point grid",
+        "signed symmetric quantizer and shared activation calibration",
+        "SQuaRE convolution grouping",
+        "bounded reconstruction scoring",
+        "DP uses SQuaRE proxy; fixed resource grid with refinement accuracy selection",
+        "no BN tuning/statistics correction",
+        "Block-diagonal Hessian, contiguous blocks <= 256; no cross-block compensation"
+      ]
+    },
+    {
+      "model": "swin_tiny",
+      "method": "SparseGPT-adapted",
+      "description": "SparseGPT (full sampled-input Hessian + matched W/A quantization + bounded DP, adapted)",
+      "reference_sha256": "c49bf278bba1ccad8f94b03a1da29831031d23fc13eb7bdeebc0e727797dda9b",
+      "settings": {
+        "algorithm": "matched-sparsegpt-1",
+        "upstream_revision": "147d2159dc4f3e9f73e47b32c04d7b3708f44436",
+        "damping": 0.01,
+        "processing_block_size": 128,
+        "positions_per_example": 32,
+        "score_rows": 2048,
+        "quantizer": "SQuaRE symmetric per-output-channel minmax W / per-layer maxabs A",
+        "conv_layout": "flattened input dimension (C,Kh,Kw)",
+        "normalization_correction": false,
+        "hessian": "full sampled-input Gram; cross-block compensation retained",
+        "hessian_dtype": "float32",
+        "damping_scope": "full-layer mean after upstream dead-input treatment",
+        "quantization_scale_scope": "full output channel, not per block",
+        "execution_settings": {
+          "mode": "square-default",
+          "cuda_matmul_allow_tf32": false,
+          "cudnn_allow_tf32": true,
+          "cudnn_benchmark": false,
+          "cudnn_deterministic": false,
+          "deterministic_algorithms": false,
+          "float32_matmul_precision": "highest",
+          "cudnn_version": 90100,
+          "provenance": "Reconstructed PyTorch 2.6 defaults from SQuaRE runner code; legacy results did not record these flags. Dense checks still required."
+        }
+      },
+      "limitations": [
+        "Reference lacks original checkpoint/content hashes; agreement is checked via metadata and dense accuracy.",
+        "SQuaRE legacy layerwise selection used final images; historical comparison is not an untouched-test study.",
+        "Energy is an unweighted selected-layer proxy, not measured hardware energy."
+      ],
+      "adaptations": [
+        "expanded 16-point grid",
+        "signed symmetric quantizer and shared activation calibration",
+        "SQuaRE convolution grouping",
+        "bounded reconstruction scoring",
+        "DP uses SQuaRE proxy; fixed resource grid with refinement accuracy selection",
+        "no BN tuning/statistics correction",
+        "dense-input candidate bank instead of sequential compressed-model calibration",
+        "vision and convolution adapters; retained-N convention including 3:8",
+        "joint SparseGPT pruning/weight quantization; matched activation quantization"
+      ]
+    },
+    {
+      "model": "resnet18",
+      "method": "OBC-block256",
+      "description": "OBC-inspired blockwise OBS (B=256, adapted)",
+      "reference_sha256": "a702731a6a9f2dac668f312e3813d924244b1cd50e61c9b58ed30995bb6c1662",
+      "settings": {
+        "algorithm": "matched-obs-2",
+        "upstream_revision": "9b7979bfc9ee20d87db553823a32ee9890beaa99",
+        "damping": 0.01,
+        "row_batch": 32,
+        "positions_per_example": 32,
+        "score_rows": 2048,
+        "quantizer": "SQuaRE symmetric per-output-channel minmax W / per-layer maxabs A",
+        "conv_layout": "flattened input dimension (C,Kh,Kw)",
+        "normalization_correction": false,
+        "hessian": "block-diagonal sampled-input Gram",
+        "hessian_block_size": 256,
+        "hessian_dtype": "float64",
+        "damping_scope": "full-layer mean input energy",
+        "quantization_scale_scope": "full output channel, not per block",
+        "execution_settings": {
+          "mode": "square-default",
+          "cuda_matmul_allow_tf32": false,
+          "cudnn_allow_tf32": true,
+          "cudnn_benchmark": false,
+          "cudnn_deterministic": false,
+          "deterministic_algorithms": false,
+          "float32_matmul_precision": "highest",
+          "cudnn_version": 90100,
+          "provenance": "Reconstructed PyTorch 2.6 defaults from SQuaRE runner code; legacy results did not record these flags. Dense checks still required."
+        }
+      },
+      "limitations": [
+        "Reference lacks original checkpoint/content hashes; agreement is checked via metadata and dense accuracy.",
+        "SQuaRE legacy layerwise selection used final images; historical comparison is not an untouched-test study.",
+        "Energy is an unweighted selected-layer proxy, not measured hardware energy.",
+        "Blockwise OBS is an OBC-inspired approximation, not a reproduction of full-Hessian published OBC."
+      ],
+      "adaptations": [
+        "expanded 16-point grid",
+        "signed symmetric quantizer and shared activation calibration",
+        "SQuaRE convolution grouping",
+        "bounded reconstruction scoring",
+        "DP uses SQuaRE proxy; fixed resource grid with refinement accuracy selection",
+        "no BN tuning/statistics correction",
+        "Block-diagonal Hessian, contiguous blocks <= 256; no cross-block compensation"
+      ]
+    },
+    {
+      "model": "resnet18",
+      "method": "SparseGPT-adapted",
+      "description": "SparseGPT (full sampled-input Hessian + matched W/A quantization + bounded DP, adapted)",
+      "reference_sha256": "a702731a6a9f2dac668f312e3813d924244b1cd50e61c9b58ed30995bb6c1662",
+      "settings": {
+        "algorithm": "matched-sparsegpt-1",
+        "upstream_revision": "147d2159dc4f3e9f73e47b32c04d7b3708f44436",
+        "damping": 0.01,
+        "processing_block_size": 128,
+        "positions_per_example": 32,
+        "score_rows": 2048,
+        "quantizer": "SQuaRE symmetric per-output-channel minmax W / per-layer maxabs A",
+        "conv_layout": "flattened input dimension (C,Kh,Kw)",
+        "normalization_correction": false,
+        "hessian": "full sampled-input Gram; cross-block compensation retained",
+        "hessian_dtype": "float32",
+        "damping_scope": "full-layer mean after upstream dead-input treatment",
+        "quantization_scale_scope": "full output channel, not per block",
+        "execution_settings": {
+          "mode": "square-default",
+          "cuda_matmul_allow_tf32": false,
+          "cudnn_allow_tf32": true,
+          "cudnn_benchmark": false,
+          "cudnn_deterministic": false,
+          "deterministic_algorithms": false,
+          "float32_matmul_precision": "highest",
+          "cudnn_version": 90100,
+          "provenance": "Reconstructed PyTorch 2.6 defaults from SQuaRE runner code; legacy results did not record these flags. Dense checks still required."
+        }
+      },
+      "limitations": [
+        "Reference lacks original checkpoint/content hashes; agreement is checked via metadata and dense accuracy.",
+        "SQuaRE legacy layerwise selection used final images; historical comparison is not an untouched-test study.",
+        "Energy is an unweighted selected-layer proxy, not measured hardware energy."
+      ],
+      "adaptations": [
+        "expanded 16-point grid",
+        "signed symmetric quantizer and shared activation calibration",
+        "SQuaRE convolution grouping",
+        "bounded reconstruction scoring",
+        "DP uses SQuaRE proxy; fixed resource grid with refinement accuracy selection",
+        "no BN tuning/statistics correction",
+        "dense-input candidate bank instead of sequential compressed-model calibration",
+        "vision and convolution adapters; retained-N convention including 3:8",
+        "joint SparseGPT pruning/weight quantization; matched activation quantization"
+      ]
+    }
+  ],
+  "archive_sha256": {
+    "comparison_summary.csv": "4fe054325b9eb0f3e893423622c9f47d3086b6018bca50f3cfb4e1cb114f7d1d",
+    "layer_configurations.csv": "647c602c2b120880d85b3f4b286eab588fd8d6b1f1f86267e911b49bd81b59f2"
+  }
+}
